@@ -61,7 +61,7 @@ def responder_ia(mensaje_usuario, tiene_foto=False):
     return "📋 *Consulta Registrada:* ¿Podrías indicarme la edad actual del cultivo o adjuntar una foto de la anomalía?"
 
 # ==========================================
-# 🚪 PANEL DE AUTENTICACIÓN (LOGIN - INTACTO)
+# 🚪 PANEL DE AUTENTICACIÓN (LOGIN CONFIGURADO)
 # ==========================================
 def render_autentizacion():
     st.markdown("""
@@ -81,6 +81,19 @@ def render_autentizacion():
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
         h1, h2, h3, p, div[data-testid="stWidgetLabel"] p { color: #ffffff !important; }
+        
+        /* Ajuste específico para que los campos de login sean transparentes con borde blanco */
+        div[data-testid="stTextInput"] input {
+            background-color: transparent !important;
+            color: #ffffff !important;
+            border: 1px solid #ffffff !important;
+            border-radius: 8px !important;
+        }
+        
+        /* Color del marcador de posición (placeholder) en el login */
+        div[data-testid="stTextInput"] input::placeholder {
+            color: rgba(255, 255, 255, 0.6) !important;
+        }
         
         button[kind="primary"] {
             background-color: #4CAF50 !important;
@@ -113,8 +126,10 @@ def render_autentizacion():
 
     if st.session_state.pantalla_auth == "login":
         st.markdown('<div style="text-align:center; font-size:32px; font-weight:bold; color:white; margin-bottom:20px;">🌱 AgroCampo</div>', unsafe_allow_html=True)
-        user_input = st.text_input("Usuario", key="login_user")
-        pass_input = st.text_input("Contraseña", type="password", key="login_pass")
+        
+        # Se agregaron los placeholders solicitados que desaparecen automáticamente al escribir
+        user_input = st.text_input("Usuario", placeholder="Ingrese usuario", key="login_user")
+        pass_input = st.text_input("Contraseña", type="password", placeholder="Ingrese contraseña", key="login_pass")
         
         if st.button("ACCEDER", type="primary", use_container_width=True):
             st.session_state.autenticado = True
@@ -137,15 +152,15 @@ def render_autentizacion():
 
     elif st.session_state.pantalla_auth == "registro":
         st.markdown('<div style="text-align:center; font-size:26px; font-weight:bold; color:white; margin-bottom:20px;">📝 Registro</div>', unsafe_allow_html=True)
-        st.text_input("Nombre Completo", key="reg_nom")
-        st.text_input("Nombre de Usuario", key="reg_usr")
-        st.text_input("Contraseña", type="password", key="reg_pwd")
+        st.text_input("Nombre Completo", placeholder="Ingrese su nombre", key="reg_nom")
+        st.text_input("Nombre de Usuario", placeholder="Ingrese usuario deseado", key="reg_usr")
+        st.text_input("Contraseña", type="password", placeholder="Ingrese contraseña", key="reg_pwd")
         if st.button("REGISTRARSE", type="primary", use_container_width=True):
             st.session_state.autenticado = True
             st.rerun()
 
     elif st.session_state.pantalla_auth == "recuperacion":
-        st.text_input("Usuario o Correo", key="rec_usr")
+        st.text_input("Usuario o Correo", placeholder="Ingrese su usuario o correo", key="rec_usr")
         if st.button("ENVIAR CÓDIGO", type="primary", use_container_width=True):
             st.success("Código enviado.")
 
@@ -162,6 +177,7 @@ def render_dashboard():
         .agro-card { background-color: #FFFFFF; border-radius: 14px; padding: 18px; border: 1px solid #EAEAEA; margin-bottom: 5px; }
         .agro-card p, .agro-card div { color: #333333 !important; font-size: 15px; }
         
+        /* Cajas de texto blancas con borde gris para el interior de la app */
         div[data-testid="stTextInput"] input, div[data-testid="stTextArea"] textarea, div[data-testid="stFileUploader"] section {
             background-color: #ffffff !important; color: #000000 !important; border: 1px solid #cccccc !important; border-radius: 8px !important;
         }
@@ -206,7 +222,6 @@ def render_dashboard():
         st.markdown("<h4 style='color:#1E3D14;'>Publicaciones de la Comunidad</h4>", unsafe_allow_html=True)
         
         with st.expander("➕ Crear Publicación", expanded=False):
-            # Usamos el contador en la clave para obligar a Streamlit a limpiar el input al incrementar
             nuevo_texto = st.text_area("¿Qué está pasando en tu cultivo?", placeholder="Escribe aquí tu estado...", key=f"txt_pub_{st.session_state.pub_count}")
             nueva_foto = st.file_uploader("Añadir foto (opcional)", type=["png", "jpg", "jpeg"], key=f"file_pub_{st.session_state.pub_count}")
             
@@ -218,7 +233,7 @@ def render_dashboard():
                         "contenido": nuevo_texto,
                         "imagen": nueva_foto
                     })
-                    st.session_state.pub_count += 1  # Forzamos la limpieza automática de los inputs
+                    st.session_state.pub_count += 1
                     st.success("¡Publicado con éxito!")
                     st.rerun()
 
@@ -267,7 +282,7 @@ def render_dashboard():
                         "descripcion": prod_descripcion,
                         "foto": prod_foto
                     })
-                    st.session_state.mkt_count += 1  # Forzamos la limpieza automática de los inputs del Market
+                    st.session_state.mkt_count += 1
                     st.success("¡Producto publicado con éxito!")
                     st.rerun()
 
