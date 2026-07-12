@@ -20,20 +20,15 @@ def obtener_conexion():
 def obtener_tasa_bcv():
     """
     Obtiene la tasa oficial del BCV en tiempo real a través de una API abierta.
-    Mantiene el valor del viernes durante el fin de semana de forma automática.
     """
     try:
-        # Consulta a API de indicadores económicos de Venezuela
         url = "https://pydolarvenezuela-api.vercel.app/api/v1/dollar?page=bcv"
         response = requests.get(url, timeout=5)
-        
         if response.status_code == 200:
             datos = response.json()
             return float(datos['monitors']['usd']['price'])
     except Exception as e:
-        # Si la API falla o no hay internet, usa el valor base actual de referencia
         return 674.93
-        
     return 674.93
 
 def obtener_clima():
@@ -55,10 +50,10 @@ if "pantalla_actual" not in st.session_state:
 if "pantalla_auth" not in st.session_state:
     st.session_state.pantalla_auth = "login"
 if "likes_dados" not in st.session_state:
-    st.session_state.likes_dados = {}  # {id_publicacion: True}
+    st.session_state.likes_dados = {}
 
 # ==========================================
-# 🎨 ESTILOS CSS
+# 🎨 ESTILOS CSS AVANZADOS (ESTILO AGRO)
 # ==========================================
 st.markdown("""
     <style>
@@ -70,12 +65,47 @@ st.markdown("""
     }
     
     [data-testid="stVerticalBlock"] {
-        max-width: 480px;
+        max-width: 440px;
         margin: 0 auto;
     }
     
+    /* Contenedor de Login Premium inspirado en tu diseño */
+    .auth-container {
+        background: linear-gradient(135deg, #1e4d2b 0%, #0f2a18 100%);
+        border-radius: 24px;
+        padding: 35px 25px;
+        box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+        margin-top: 20px;
+        color: #ffffff !important;
+        text-align: center;
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .auth-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #ffffff !important;
+        margin-bottom: 5px;
+    }
+    
+    .auth-subtitle {
+        font-size: 16px;
+        color: #a3cfbb !important;
+        margin-bottom: 25px;
+    }
+    
+    /* Corrección de etiquetas de texto para que no se camuflen */
+    div[data-testid="stWidgetLabel"] p {
+        color: #333333 !important;
+        font-weight: 600 !important;
+    }
+    
+    .auth-container div[data-testid="stWidgetLabel"] p {
+        color: #ffffff !important;
+    }
+    
     .main-header {
-        font-size: 26px;
+        font-size: 28px;
         font-weight: 700;
         color: #1E3D14;
         margin-bottom: 15px;
@@ -158,24 +188,34 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Consultamos la tasa real antes de renderizar la app
 tasa_bcv = obtener_tasa_bcv()
 
 # ==========================================
 # 🚪 PANEL DE AUTENTICACIÓN
 # ==========================================
 def render_autentizacion():
-    st.markdown('<div class="main-header">🌱 AgroCampo</div>', unsafe_allow_html=True)
+    # Encabezado principal limpio
+    st.markdown('<div style="text-align: center; margin-top: 20px;"><h2 style="color: #1E3D14; font-weight:700;">🌱 AgroCampo</h2></div>', unsafe_allow_html=True)
     
     # PANTALLA: LOGIN
     if st.session_state.pantalla_auth == "login":
-        st.subheader("Iniciar Sesión")
-        user_input = st.text_input("Usuario", key="login_user")
-        pass_input = st.text_input("Contraseña", type="password", key="login_pass")
+        # Contenedor visual de fondo verde oscuro estilizado
+        st.markdown("""
+            <div class="auth-container">
+                <div class="auth-title">Bienvenido a AgroCampo</div>
+                <div class="auth-subtitle">Inicia sesión para continuar</div>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        # Campos de entrada
+        user_input = st.text_input("Usuario", key="login_user", placeholder="Ingresa tu usuario")
+        pass_input = st.text_input("Contraseña", type="password", key="login_pass", placeholder="••••••••")
         
         campos_vacios = not user_input.strip() or not pass_input.strip()
         
-        if st.button("ACCEDER", key="btn_acceder", disabled=campos_vacios, use_container_width=True):
+        # Botón de acceso prioritario
+        st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
+        if st.button("ACCEDER 🚀", key="btn_acceder", disabled=campos_vacios, use_container_width=True):
             try:
                 conn = obtener_conexion()
                 cursor = conn.cursor(dictionary=True)
@@ -194,13 +234,14 @@ def render_autentizacion():
                 else:
                     st.error("Credenciales inválidas.")
             except Exception as e:
-                # Si falla la BD local, permite ingresar en modo local/pruebas
                 st.session_state.autenticado = True
                 st.session_state.id_usuario_actual = 1
                 st.session_state.usuario_actual = "Usuario de Prueba"
                 st.session_state.username_actual = user_input
                 st.rerun()
         
+        # Botones de navegación secundaria alineados
+        st.markdown("<hr style='margin: 20px 0; border: 0; border-top: 1px solid #ddd;'>", unsafe_allow_html=True)
         col_reg, col_rec = st.columns(2)
         with col_reg:
             if st.button("Crear cuenta nueva", key="go_register", use_container_width=True):
@@ -213,7 +254,13 @@ def render_autentizacion():
 
     # PANTALLA: REGISTRO
     elif st.session_state.pantalla_auth == "registro":
-        st.subheader("Crear Cuenta Nueva")
+        st.markdown("""
+            <div class="auth-container">
+                <div class="auth-title">Crear Cuenta</div>
+                <div class="auth-subtitle">Únete a la red productiva</div>
+            </div>
+        """, unsafe_allow_html=True)
+        
         reg_nombre = st.text_input("Nombre Completo", key="reg_nombre")
         reg_user = st.text_input("Nombre de Usuario", key="reg_user")
         reg_pass = st.text_input("Contraseña Nueva", type="password", key="reg_pass")
@@ -221,7 +268,7 @@ def render_autentizacion():
         
         campos_registro_vacios = not reg_nombre.strip() or not reg_user.strip() or not reg_pass.strip() or not reg_ubicacion.strip()
         
-        if st.button("REGISTRARSE", key="btn_registrar", disabled=campos_registro_vacios, use_container_width=True):
+        if st.button("REGISTRARSE 🌾", key="btn_registrar", disabled=campos_registro_vacios, use_container_width=True):
             try:
                 conn = obtener_conexion()
                 cursor = conn.cursor()
@@ -236,17 +283,23 @@ def render_autentizacion():
             except Exception as e:
                 st.error("Error al guardar en Base de Datos.")
 
-        if st.button("Volver al Login", key="back_login_reg", use_container_width=True):
+        if st.button("← Cancelar y Volver", key="back_login_reg", use_container_width=True):
             st.session_state.pantalla_auth = "login"
             st.rerun()
 
     # PANTALLA: RECUPERAR
     elif st.session_state.pantalla_auth == "recuperar":
-        st.subheader("Recuperar Cuenta")
+        st.markdown("""
+            <div class="auth-container">
+                <div class="auth-title">Recuperar Acceso</div>
+                <div class="auth-subtitle">Busca tus credenciales registradas</div>
+            </div>
+        """, unsafe_allow_html=True)
+        
         rec_nombre = st.text_input("Nombre Completo Registrado", key="rec_nombre")
         campo_rec_vacio = not rec_nombre.strip()
         
-        if st.button("BUSCAR CREDENCIALES", key="btn_recuperar", disabled=campo_rec_vacio, use_container_width=True):
+        if st.button("BUSCAR CREDENCIALES 🔍", key="btn_recuperar", disabled=campo_rec_vacio, use_container_width=True):
             try:
                 conn = obtener_conexion()
                 cursor = conn.cursor(dictionary=True)
@@ -255,13 +308,13 @@ def render_autentizacion():
                 cursor.close()
                 conn.close()
                 if resultado:
-                    st.info(f"🔑 **Datos:**\n\n**Usuario:** {resultado['usuario']}\n\n**Contraseña:** {resultado['contrasena']}")
+                    st.info(f"🔑 **Datos encontrados:**\n\n**Usuario:** {resultado['usuario']}\n\n**Contraseña:** {resultado['contrasena']}")
                 else:
                     st.error("No se encontró ningún usuario con ese nombre.")
             except Exception as e:
                 st.error("Error de conexión.")
                 
-        if st.button("Volver al Login", key="back_login_rec", use_container_width=True):
+        if st.button("← Cancelar y Volver", key="back_login_rec", use_container_width=True):
             st.session_state.pantalla_auth = "login"
             st.rerun()
 
@@ -269,7 +322,6 @@ def render_autentizacion():
 # 🌱 INTERFAZ PRINCIPAL (DASHBOARD)
 # ==========================================
 def render_dashboard():
-    # Cabeceras dinámicas
     if st.session_state.pantalla_actual == "Novedades":
         st.markdown('<div class="main-header">AgroCampo 🔔</div>', unsafe_allow_html=True)
     elif st.session_state.pantalla_actual == "Consulta (SOS)":
@@ -279,10 +331,9 @@ def render_dashboard():
     else:
         st.markdown(f'<div class="main-header">{st.session_state.pantalla_actual}</div>', unsafe_allow_html=True)
 
-    # Buscador integrado
     busqueda = st.text_input("Buscar...", label_visibility="collapsed", placeholder="🔍 Buscar...", key="main_search")
     
-    # --- 🏠 SECCIÓN: NOVEDADES ---
+    # --- NOVEDADES ---
     if st.session_state.pantalla_actual == "Novedades":
         st.markdown('<div><span class="pill">🌽 Maíz</span><span class="pill">🐛 Plagas</span><span class="pill">🚜 Maquinaria</span></div>', unsafe_allow_html=True)
         
@@ -326,7 +377,7 @@ def render_dashboard():
             lista_publicaciones = st.session_state.get("posts_locales", [])
 
         if not lista_publicaciones:
-            st.info("📭 El muro está vacío. ¡Sé el primero en interactuar y publicar un estado arriba!")
+            st.info("📭 El muro está vacío. ¡Sé el primero en interactuar!")
         else:
             for index, post in enumerate(lista_publicaciones):
                 id_unico = post.get('id', index)
@@ -342,22 +393,20 @@ def render_dashboard():
                     id_like_track = f"like_post_{id_unico}"
                     ya_dio_like = st.session_state.likes_dados.get(id_like_track, False)
                     label_lk = "❤️ Ya te gusta" if ya_dio_like else "❤️ Me Gusta"
-                    
                     if st.button(label_lk, key=f"lk_{id_unico}", disabled=ya_dio_like):
                         st.session_state.likes_dados[id_like_track] = True
                         st.rerun()
                 with col_cm:
                     st.button("💬 Comentarios", key=f"cm_{id_unico}")
 
-    # --- 🩺 SECCIÓN: CONSULTA SOS ---
+    # --- CONSULTA SOS ---
     elif st.session_state.pantalla_actual == "Consulta (SOS)":
         st.subheader("Pregunta a los Expertos / Diagnóstico SOS")
         st.warning("Próximamente: Las consultas también se cargarán de forma limpia desde la base de datos.")
 
-    # --- 🛒 SECCIÓN: MERCADO ---
+    # --- MARKET ---
     elif st.session_state.pantalla_actual == "Market":
         st.info(f"💵 Tasa Oficial BCV de hoy: **{tasa_bcv:,.2f} Bs.**")
-        
         st.markdown('<div><span class="pill">🚜 Tractores</span><span class="pill">🌾 Semillas</span></div>', unsafe_allow_html=True)
         col_p1, col_p2 = st.columns(2)
         with col_p1:
@@ -383,7 +432,7 @@ def render_dashboard():
             """, unsafe_allow_html=True)
             st.button("Contactar", key="c_prod2")
 
-    # --- 🌤️ CLIMA & PERFIL ---
+    # --- CLIMA & PERFIL ---
     elif st.session_state.pantalla_actual == "Clima":
         st.info(obtener_clima())
     elif st.session_state.pantalla_actual == "Perfil":
@@ -396,9 +445,7 @@ def render_dashboard():
 
     st.markdown('<div class="nav-bar-spacer"></div>', unsafe_allow_html=True)
 
-    # ==========================================
-    # 📱 MENÚ DE NAVEGACIÓN INFERIOR (ESTILO INSTAGRAM)
-    # ==========================================
+    # NAVEGACIÓN INFERIOR MOBILE MÓDULO
     cols_nav = st.columns(5)
     secciones = ["Novedades", "Market", "Consulta (SOS)", "Clima", "Perfil"]
     iconos = ["📰 Feed", "🛒 Market", "💬 SOS", "🌤️ Clima", "👤 Perfil"]
@@ -407,7 +454,6 @@ def render_dashboard():
         with col:
             es_activa = secciones[indice] == st.session_state.pantalla_actual
             label = f"🟢 {iconos[indice]}" if es_activa else iconos[indice]
-            
             if st.button(label, key=f"nav_{secciones[indice]}", use_container_width=True):
                 st.session_state.pantalla_actual = secciones[indice]
                 st.rerun()
