@@ -177,7 +177,6 @@ def render_autentizacion():
 # 🌱 INTERFAZ PRINCIPAL (MENÚ VERDE Y TEXTO BLANCO)
 # ==========================================
 def render_dashboard():
-    # SOLUCIÓN: Forzar color verde (#2e6d38) y letras blancas (#ffffff) en el menú superior
     st.markdown("""
         <style>
         [data-testid="stAppViewContainer"] { background-color: #F7F9F6 !important; }
@@ -203,8 +202,8 @@ def render_dashboard():
             margin: 0 !important;
         }
         
-        /* CORRECCIÓN DE COLOR: Botones Verdes con Letras Blancas */
-        .menu-horizontal-container div.stButton > button {
+        /* MODIFICACIÓN EXCLUSIVA: Forzar botones generales a Verde con Letras Blancas */
+        div.stButton > button {
             background-color: #2e6d38 !important; 
             color: #ffffff !important; 
             border-radius: 8px !important;
@@ -217,10 +216,10 @@ def render_dashboard():
             box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
         }
         
-        /* Mantener verde y blanco incluso al pasar el mouse por encima o seleccionarlo */
-        .menu-horizontal-container div.stButton > button:hover,
-        .menu-horizontal-container div.stButton > button:focus,
-        .menu-horizontal-container div.stButton > button:active { 
+        /* Mantener verde y blanco en hover, focus y active */
+        div.stButton > button:hover,
+        div.stButton > button:focus,
+        div.stButton > button:active { 
             background-color: #1e4d2b !important; 
             color: #ffffff !important; 
             border: 1px solid #11301a !important;
