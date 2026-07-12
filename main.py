@@ -3,8 +3,7 @@ import mysql.connector
 import base64
 import os
 import sys
-import subprocess
-import requests  # <-- Añadido para conectar con la tasa del dólar en vivo
+import requests  # <-- Conecta con la tasa del dólar en vivo
 
 # Configuración de página estilo móvil
 st.set_page_config(page_title="AgroCampo", page_icon="🌱", layout="centered")
@@ -59,7 +58,7 @@ if "likes_dados" not in st.session_state:
     st.session_state.likes_dados = {}  # {id_publicacion: True}
 
 # ==========================================
-# 🎨 ESTILOS CSS INSPIRADOS EN LA IMAGEN
+# 🎨 ESTILOS CSS
 # ==========================================
 st.markdown("""
     <style>
@@ -195,6 +194,7 @@ def render_autentizacion():
                 else:
                     st.error("Credenciales inválidas.")
             except Exception as e:
+                # Si falla la BD local, permite ingresar en modo local/pruebas
                 st.session_state.autenticado = True
                 st.session_state.id_usuario_actual = 1
                 st.session_state.usuario_actual = "Usuario de Prueba"
@@ -354,9 +354,8 @@ def render_dashboard():
         st.subheader("Pregunta a los Expertos / Diagnóstico SOS")
         st.warning("Próximamente: Las consultas también se cargarán de forma limpia desde la base de datos.")
 
-    # --- 🛒 SECCIÓN: MERCADO (TASAS DINÁMICAS ACTUALIZADAS) ---
+    # --- 🛒 SECCIÓN: MERCADO ---
     elif st.session_state.pantalla_actual == "Market":
-        # Bloque informativo para el usuario sobre la tasa activa
         st.info(f"💵 Tasa Oficial BCV de hoy: **{tasa_bcv:,.2f} Bs.**")
         
         st.markdown('<div><span class="pill">🚜 Tractores</span><span class="pill">🌾 Semillas</span></div>', unsafe_allow_html=True)
@@ -414,19 +413,9 @@ def render_dashboard():
                 st.rerun()
 
 # ==========================================
-# 🚦 CONTROLADOR PRINCIPAL
+# 🚦 CONTROLADOR PRINCIPAL SIMPLIFICADO
 # ==========================================
-if "streamlit_interno" in sys.argv:
-    if not st.session_state.autenticado:
-        render_autentizacion()
-    else:
-        render_dashboard()
+if not st.session_state.autenticado:
+    render_autentizacion()
 else:
-    if __name__ == "__main__":
-        puerto = 8501
-        comando_st = f"streamlit run {__file__} streamlit_interno --server.port {puerto} --server.headless true"
-        try:
-            subprocess.run(comando_st, shell=True, check=True)
-        except KeyboardInterrupt:
-            print("\n🛑 Servidor apagado.")
-            
+    render_dashboard()
