@@ -28,6 +28,12 @@ if "pantalla_actual" not in st.session_state:
 if "pantalla_auth" not in st.session_state:
     st.session_state.pantalla_auth = "login"
 
+# Claves para limpiar los inputs tras publicar
+if "pub_count" not in st.session_state:
+    st.session_state.pub_count = 0
+if "mkt_count" not in st.session_state:
+    st.session_state.mkt_count = 0
+
 # Historial del Chat de la IA
 if "historial_ia" not in st.session_state:
     st.session_state.historial_ia = [
@@ -42,21 +48,17 @@ if "db_publicaciones" not in st.session_state:
     ]
 if "db_market" not in st.session_state:
     st.session_state.db_market = [
-        {"id": 1, "titulo": "Sacos de Fertilizante NPK", "precio": "25.00", "descripcion": "Alta calidad para fases de crecimiento.", "foto": None}
+        {"id": 1, "autor": "Euclimar García", "titulo": "Sacos de Fertilizante NPK", "precio": "25.00", "ubicacion": "Lara, Venezuela", "descripcion": "Alta calidad para fases de crecimiento.", "foto": None}
     ]
-if "likes_dados" not in st.session_state:
-    st.session_state.likes_dados = {}
 
 # LÓGICA DE RESPUESTAS AGROIA
 def responder_ia(mensaje_usuario, tiene_foto=False):
     msg = mensaje_usuario.lower()
     if tiene_foto:
-        return "📸 *Análisis de Imagen AgroIA:* He recibido la captura de tu cultivo/plaga. Visualmente detecto patrones que podrían asociarse a un déficit nutricional o ataque temprano de áfidos. Te sugiero monitorear el envés de las hojas y verificar si hay clorosis."
+        return "📸 *Análisis de Imagen AgroIA:* He recibido la captura de tu cultivo/plaga. Visualmente detecto patrones que podrían asociarse a un déficit nutricional o ataque temprano de áfidos."
     if "fertilidad" in msg or "fertilizante" in msg or "abono" in msg or "npk" in msg:
-        return "🌿 *Recomendación de Fertilidad:* Para crecimiento prioriza fuentes altas en Nitrógeno (Urea). Para floración y llenado, requiere Fósforo y Potasio (NPK 12-24-12)."
-    elif "plaga" in msg or "insecto" in msg or "veneno" in msg:
-        return "🛡️ *Control Fitosanitario:* Para insectos chupadores evalúa aplicaciones técnicas o biológicas como el jabón potásico con extracto de neem."
-    return "📋 *Consulta Registrada:* ¿Podrías indicarme la edad actual del cultivo o adjuntar una foto de la anomalía para darte una respuesta exacta?"
+        return "🌿 *Recomendación de Fertilidad:* Para crecimiento prioriza fuentes altas en Nitrógeno (Urea)."
+    return "📋 *Consulta Registrada:* ¿Podrías indicarme la edad actual del cultivo o adjuntar una foto de la anomalía?"
 
 # ==========================================
 # 🚪 PANEL DE AUTENTICACIÓN (LOGIN - INTACTO)
@@ -96,28 +98,15 @@ def render_autentizacion():
             width: 100% !important;
             margin-top: 25px !important;
         }
-        .auth-inline-container div.stButton {
-            margin: 0 !important;
-            width: auto !important;
-        }
+        .auth-inline-container div.stButton { margin: 0 !important; width: auto !important; }
         .auth-inline-container div.stButton > button {
             background: transparent !important;
-            background-color: transparent !important;
             color: #ffffff !important;
             border: none !important;
             box-shadow: none !important;
             text-decoration: underline !important;
             font-size: 15px !important;
             padding: 0px !important;
-            outline: none !important;
-        }
-        .auth-inline-container div.stButton > button:hover, 
-        .auth-inline-container div.stButton > button:focus,
-        .auth-inline-container div.stButton > button:active {
-            background: transparent !important;
-            color: #a3cfbb !important;
-            border: none !important;
-            box-shadow: none !important;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -154,22 +143,11 @@ def render_autentizacion():
         if st.button("REGISTRARSE", type="primary", use_container_width=True):
             st.session_state.autenticado = True
             st.rerun()
-        st.markdown('<div class="auth-inline-container" style="justify-content:center;">', unsafe_allow_html=True)
-        if st.button("Volver", key="back_reg"):
-            st.session_state.pantalla_auth = "login"
-            st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
 
     elif st.session_state.pantalla_auth == "recuperacion":
-        st.markdown('<div style="text-align:center; font-size:24px; font-weight:bold; color:white; margin-bottom:20px;">🔑 Recuperar Acceso</div>', unsafe_allow_html=True)
         st.text_input("Usuario o Correo", key="rec_usr")
         if st.button("ENVIAR CÓDIGO", type="primary", use_container_width=True):
             st.success("Código enviado.")
-        st.markdown('<div class="auth-inline-container" style="justify-content:center;">', unsafe_allow_html=True)
-        if st.button("Volver", key="back_rec"):
-            st.session_state.pantalla_auth = "login"
-            st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
 # 🌱 INTERFAZ PRINCIPAL
@@ -179,100 +157,32 @@ def render_dashboard():
         <style>
         [data-testid="stAppViewContainer"] { background-color: #F7F9F6 !important; }
         .block-container { max-width: 550px !important; padding: 1.5rem 1rem !important; }
-        
         .main-header { font-size: 34px; font-weight: 900; color: #1E3D14 !important; text-align: center; margin-top: 55px !important; margin-bottom: 15px; }
         
         .agro-card { background-color: #FFFFFF; border-radius: 14px; padding: 18px; border: 1px solid #EAEAEA; margin-bottom: 5px; }
         .agro-card p, .agro-card div { color: #333333 !important; font-size: 15px; }
         
-        div[data-testid="stTextInput"] input, 
-        div[data-testid="stTextArea"] textarea,
-        div[data-testid="stFileUploader"] section {
-            background-color: #ffffff !important;
-            color: #000000 !important;
-            border: 1px solid #cccccc !important;
-            border-radius: 8px !important;
+        div[data-testid="stTextInput"] input, div[data-testid="stTextArea"] textarea, div[data-testid="stFileUploader"] section {
+            background-color: #ffffff !important; color: #000000 !important; border: 1px solid #cccccc !important; border-radius: 8px !important;
         }
         
-        div[data-testid="stTextInput"] input::placeholder,
-        div[data-testid="stTextArea"] textarea::placeholder {
-            color: #555555 !important;
-        }
-
-        div[data-testid="stFileUploader"] dropzone div {
-            color: #000000 !important;
-        }
-        
-        .menu-horizontal-container {
-            display: flex !important;
-            flex-direction: row !important;
-            flex-wrap: nowrap !important;
-            justify-content: space-between !important;
-            align-items: center !important;
-            width: 100% !important;
-            gap: 6px !important;
-            margin-bottom: 15px !important;
-        }
-        .menu-horizontal-container div.element-container, 
-        .menu-horizontal-container div.stButton {
-            flex: 1 1 0% !important;
-            width: auto !important;
-            margin: 0 !important;
-        }
+        .menu-horizontal-container { display: flex !important; flex-direction: row !important; justify-content: space-between !important; width: 100% !important; gap: 6px !important; margin-bottom: 15px !important; }
+        .menu-horizontal-container div.element-container, .menu-horizontal-container div.stButton { flex: 1 1 0% !important; width: auto !important; margin: 0 !important; }
         
         div.stButton > button {
-            background-color: #2e6d38 !important; 
-            color: #ffffff !important; 
-            border-radius: 8px !important;
-            border: 1px solid #1e4d2b !important; 
-            font-weight: bold !important;
-            font-size: 13px !important;
-            padding: 10px 2px !important;
-            width: 100% !important;
-            white-space: nowrap !important;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+            background-color: #2e6d38 !important; color: #ffffff !important; border-radius: 8px !important; border: 1px solid #1e4d2b !important; font-weight: bold !important; font-size: 13px !important; padding: 10px 2px !important; width: 100% !important;
         }
+        div.stButton > button:hover { background-color: #1e4d2b !important; }
         
-        div.stButton > button:hover,
-        div.stButton > button:focus,
-        div.stButton > button:active { 
-            background-color: #1e4d2b !important; 
-            color: #ffffff !important; 
-            border: 1px solid #11301a !important;
-        }
-        
-        button[kind="primary"] {
-            background-color: #2e6d38 !important;
-            color: #ffffff !important;
-            border: 1px solid #1e4d2b !important;
-            font-weight: bold !important;
-        }
-        button[kind="primary"]:hover {
-            background-color: #1e4d2b !important;
-        }
-        
-        /* Estilo especial y discreto para el botón de eliminar */
         .btn-eliminar > div.stButton > button {
-            background-color: #fce8e6 !important;
-            color: #cc3333 !important;
-            border: 1px solid #f5c2c2 !important;
-            font-size: 11px !important;
-            padding: 2px 5px !important;
-            border-radius: 4px !important;
-            margin-top: -5px !important;
+            background-color: #fce8e6 !important; color: #cc3333 !important; border: 1px solid #f5c2c2 !important; font-size: 11px !important; padding: 2px 5px !important; border-radius: 4px !important; margin-top: -5px !important;
         }
-        .btn-eliminar > div.stButton > button:hover {
-            background-color: #cc3333 !important;
-            color: #ffffff !important;
-        }
-
-        .btn-logout > div.stButton > button { background-color: #d32f2f !important; color: white !important; }
+        .btn-eliminar > div.stButton > button:hover { background-color: #cc3333 !important; color: #ffffff !important; }
         </style>
     """, unsafe_allow_html=True)
 
     st.markdown('<div class="main-header">🌱 AGROCAMPO</div>', unsafe_allow_html=True)
-    
-    busqueda = st.text_input("🔍 Buscar publicaciones...", placeholder="Buscar...", key="barra_busqueda_global")
+    busqueda = st.text_input("🔍 Buscar...", placeholder="Buscar...", key="barra_busqueda_global")
 
     # BARRA DE MENÚ HORIZONTAL
     st.markdown('<div class="menu-horizontal-container">', unsafe_allow_html=True)
@@ -291,69 +201,103 @@ def render_dashboard():
 
     st.markdown("<hr style='border:0; border-top: 1px solid #ddd; margin: 10px 0;'>", unsafe_allow_html=True)
 
-    # --- CONTENIDO DE LAS PANTALLAS ---
+    # --- NOVEDADES ---
     if st.session_state.pantalla_actual == "Novedades":
         st.markdown("<h4 style='color:#1E3D14;'>Publicaciones de la Comunidad</h4>", unsafe_allow_html=True)
         
         with st.expander("➕ Crear Publicación", expanded=False):
-            nuevo_texto = st.text_area("¿Qué está pasando en tu cultivo?", placeholder="Escribe aquí tu estado...", key="txt_nueva_pub")
-            nueva_foto = st.file_uploader("Añadir foto (opcional)", type=["png", "jpg", "jpeg"], key="img_nueva_pub")
+            # Usamos el contador en la clave para obligar a Streamlit a limpiar el input al incrementar
+            nuevo_texto = st.text_area("¿Qué está pasando en tu cultivo?", placeholder="Escribe aquí tu estado...", key=f"txt_pub_{st.session_state.pub_count}")
+            nueva_foto = st.file_uploader("Añadir foto (opcional)", type=["png", "jpg", "jpeg"], key=f"file_pub_{st.session_state.pub_count}")
             
-            if st.button("Publicar", type="primary", use_container_width=True, key="btn_guardar_pub"):
+            if st.button("Publicar", type="primary", use_container_width=True):
                 if nuevo_texto.strip() or nueva_foto is not None:
                     st.session_state.db_publicaciones.insert(0, {
-                        "id": random.randint(100, 99999), # ID único aleatorio
+                        "id": random.randint(100, 99999),
                         "autor": st.session_state.usuario_actual,
                         "contenido": nuevo_texto,
                         "imagen": nueva_foto
                     })
+                    st.session_state.pub_count += 1  # Forzamos la limpieza automática de los inputs
                     st.success("¡Publicado con éxito!")
-                    st.session_state.pantalla_actual = "Novedades"
                     st.rerun()
 
-        # LÓGICA DE BÚSQUEDA FILTRADA
         publicaciones_filtradas = st.session_state.db_publicaciones
         if busqueda.strip():
-            publicaciones_filtradas = [
-                p for p in st.session_state.db_publicaciones 
-                if busqueda.lower() in p["contenido"].lower() or busqueda.lower() in p["autor"].lower()
-            ]
+            publicaciones_filtradas = [p for p in st.session_state.db_publicaciones if busqueda.lower() in p["contenido"].lower() or busqueda.lower() in p["autor"].lower()]
 
-        if not publicaciones_filtradas:
-            st.info("❌ No encontrado")
-        else:
-            for post in publicaciones_filtradas:
-                st.markdown(f"""
-                    <div class="agro-card">
-                        <div style="font-weight:bold; color:#1E3D14;">👤 {post['autor']}</div>
-                        <p style="margin: 8px 0; font-weight: normal;">{post['contenido']}</p>
-                    </div>
-                """, unsafe_allow_html=True)
-                
-                if post.get("imagen") is not None:
-                    st.image(post["imagen"], use_column_width=True)
-                
-                # AJUSTE: Si el usuario actual es el dueño, se le renderiza el botón de eliminar abajo de la card
-                if post["autor"] == st.session_state.usuario_actual:
-                    st.markdown('<div class="btn-eliminar">', unsafe_allow_html=True)
-                    if st.button("🗑️ Eliminar mi publicación", key=f"del_{post['id']}", use_container_width=False):
-                        st.session_state.db_publicaciones = [p for p in st.session_state.db_publicaciones if p["id"] != post["id"]]
-                        st.toast("Publicación eliminada")
-                        st.rerun()
-                    st.markdown('</div>', unsafe_allow_html=True)
-                
-                st.markdown("<div style='margin-bottom:15px;'></div>", unsafe_allow_html=True)
-
-    elif st.session_state.pantalla_actual == "Market":
-        for item in st.session_state.db_market:
+        for post in publicaciones_filtradas:
             st.markdown(f"""
                 <div class="agro-card">
-                    <div style="font-size: 18px; font-weight: bold; color: #2e6d38;">📦 {item['titulo']}</div>
-                    <p style="margin: 4px 0;"><b>Precio:</b> {item['precio']}$</p>
-                    <p style="margin: 0; font-size: 14px;">{item['descripcion']}</p>
+                    <div style="font-weight:bold; color:#1E3D14;">👤 {post['autor']}</div>
+                    <p style="margin: 8px 0; font-weight: normal;">{post['contenido']}</p>
                 </div>
             """, unsafe_allow_html=True)
+            if post.get("imagen") is not None:
+                st.image(post["imagen"], use_column_width=True)
+            
+            if post["autor"] == st.session_state.usuario_actual:
+                st.markdown('<div class="btn-eliminar">', unsafe_allow_html=True)
+                if st.button("🗑️ Eliminar mi publicación", key=f"del_{post['id']}"):
+                    st.session_state.db_publicaciones = [p for p in st.session_state.db_publicaciones if p["id"] != post["id"]]
+                    st.toast("Publicación eliminada")
+                    st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown("<div style='margin-bottom:15px;'></div>", unsafe_allow_html=True)
 
+    # --- MARKET ---
+    elif st.session_state.pantalla_actual == "Market":
+        st.markdown("<h4 style='color:#1E3D14;'>🛒 Mercado de Productos e Insumos</h4>", unsafe_allow_html=True)
+        
+        with st.expander("➕ Publicar Insumo / Producto", expanded=False):
+            prod_titulo = st.text_input("Nombre del Producto / Insumo:", placeholder="Ej. Pimentón fresco, Urea...", key=f"mk_tit_{st.session_state.mkt_count}")
+            prod_precio = st.text_input("Precio ($):", placeholder="Ej. 15.00", key=f"mk_pre_{st.session_state.mkt_count}")
+            prod_ubicacion = st.text_input("Dirección / Estado de venta:", value=st.session_state.ubicacion_actual, key=f"mk_ub_{st.session_state.mkt_count}")
+            prod_descripcion = st.text_area("Descripción y características del producto:", placeholder="Detalla condiciones...", key=f"mk_des_{st.session_state.mkt_count}")
+            prod_foto = st.file_uploader("Subir foto del producto", type=["png", "jpg", "jpeg"], key=f"mk_fot_{st.session_state.mkt_count}")
+            
+            if st.button("Publicar en Mercado", type="primary", use_container_width=True):
+                if prod_titulo.strip() and prod_precio.strip():
+                    st.session_state.db_market.insert(0, {
+                        "id": random.randint(100, 99999),
+                        "autor": st.session_state.usuario_actual,
+                        "titulo": prod_titulo,
+                        "precio": prod_precio,
+                        "ubicacion": prod_ubicacion,
+                        "descripcion": prod_descripcion,
+                        "foto": prod_foto
+                    })
+                    st.session_state.mkt_count += 1  # Forzamos la limpieza automática de los inputs del Market
+                    st.success("¡Producto publicado con éxito!")
+                    st.rerun()
+
+        market_filtrado = st.session_state.db_market
+        if busqueda.strip():
+            market_filtrado = [m for m in st.session_state.db_market if busqueda.lower() in m["titulo"].lower() or busqueda.lower() in m["descripcion"].lower()]
+
+        for item in market_filtrado:
+            st.markdown(f"""
+                <div class="agro-card">
+                    <div style="font-size: 19px; font-weight: bold; color: #2e6d38;">📦 {item['titulo']}</div>
+                    <div style="font-size: 13px; color: #777777; margin-bottom: 6px;">👤 Vendedor: {item.get('autor', 'Anónimo')}</div>
+                    <p style="margin: 4px 0;"><b>💰 Precio:</b> {item['precio']}$</p>
+                    <p style="margin: 4px 0;"><b>📍 Ubicación:</b> {item.get('ubicacion', 'No especificada')}</p>
+                    <p style="margin: 6px 0; font-size: 14px;">{item['descripcion']}</p>
+                </div>
+            """, unsafe_allow_html=True)
+            if item.get("foto") is not None:
+                st.image(item["foto"], use_column_width=True)
+            
+            if item.get("autor") == st.session_state.usuario_actual:
+                st.markdown('<div class="btn-eliminar">', unsafe_allow_html=True)
+                if st.button("🗑️ Retirar Producto", key=f"del_mk_{item['id']}"):
+                    st.session_state.db_market = [m for m in st.session_state.db_market if m["id"] != item["id"]]
+                    st.toast("Producto retirado")
+                    st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown("<div style='margin-bottom:15px;'></div>", unsafe_allow_html=True)
+
+    # --- AGROIA ---
     elif st.session_state.pantalla_actual == "AgroIA":
         st.markdown("<h4 style='color:#1E3D14;'>🤖 AgroIA</h4>", unsafe_allow_html=True)
         for chat in st.session_state.historial_ia:
@@ -369,6 +313,7 @@ def render_dashboard():
                     st.session_state.historial_ia.append({"role": "assistant", "content": responder_ia(user_text, imagen_capturada is not None)})
                     st.rerun()
 
+    # --- PERFIL ---
     elif st.session_state.pantalla_actual == "Perfil":
         st.markdown("<h4 style='color:#1E3D14;'>⚙️ Perfil</h4>")
         if st.button("Cerrar Sesión 🚪", use_container_width=True):
