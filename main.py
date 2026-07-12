@@ -37,8 +37,8 @@ if "historial_ia" not in st.session_state:
 # Estructuras temporales en memoria
 if "db_publicaciones" not in st.session_state:
     st.session_state.db_publicaciones = [
-        {"id": 1, "autor": "Euclimar García", "contenido": "Iniciando la siembra de maíz en la zona alta.", "likes": 5, "comentarios": ["¡Mucho éxito!", "Excelente zona"]},
-        {"id": 2, "autor": "Jetsiber Simancas", "contenido": "Recomendaciones para el control de plagas orgánico.", "likes": 12, "comentarios": ["Me sirvió mucho."]}
+        {"id": 1, "autor": "Euclimar García", "contenido": "Iniciando la siembra de maíz en la zona alta.", "imagen": None},
+        {"id": 2, "autor": "Jetsiber Simancas", "contenido": "Recomendaciones para el control de plagas orgánico.", "imagen": None}
     ]
 if "db_market" not in st.session_state:
     st.session_state.db_market = [
@@ -56,7 +56,7 @@ def responder_ia(mensaje_usuario, tiene_foto=False):
         return "🌿 *Recomendación de Fertilidad:* Para crecimiento prioriza fuentes altas en Nitrógeno (Urea). Para floración y llenado, requiere Fósforo y Potasio (NPK 12-24-12)."
     elif "plaga" in msg or "insecto" in msg or "veneno" in msg:
         return "🛡️ *Control Fitosanitario:* Para insectos chupadores evalúa aplicaciones técnicas o biológicas como el jabón potásico con extracto de neem."
-    return "📋 *Consulta Registrada:* ¿Podrías indicarme la edad actual del cultivo o adjuntar una foto de la anomalía para darte una respuesta exacta?"
+    return "📋 *Consulta Registrada:* ¿Podrías indicarme la edad actual del cultivo o adjuntar una foto de la anomalía para darte una respuesta exact?"
 
 # ==========================================
 # 🚪 PANEL DE AUTENTICACIÓN (LOGIN)
@@ -182,7 +182,10 @@ def render_dashboard():
         [data-testid="stAppViewContainer"] { background-color: #F7F9F6 !important; }
         .block-container { max-width: 550px !important; padding: 1.5rem 1rem !important; }
         .main-header { font-size: 34px; font-weight: 900; color: #1E3D14 !important; text-align: center; }
+        
+        /* SOLUCIÓN: Letras de publicaciones oscuras (#333333) para que contrasten sobre fondo blanco */
         .agro-card { background-color: #FFFFFF; border-radius: 14px; padding: 18px; border: 1px solid #EAEAEA; margin-bottom: 15px; }
+        .agro-card p, .agro-card div { color: #333333 !important; font-size: 15px; }
         
         /* CONTENEDOR FLEXMENÚ DE NAVEGACIÓN */
         .menu-horizontal-container {
@@ -225,6 +228,17 @@ def render_dashboard():
             border: 1px solid #11301a !important;
         }
         
+        /* Estilo específico para el botón de enviar publicación (Verde/Blanco destacado) */
+        button[kind="primary"] {
+            background-color: #2e6d38 !important;
+            color: #ffffff !important;
+            border: 1px solid #1e4d2b !important;
+            font-weight: bold !important;
+        }
+        button[kind="primary"]:hover {
+            background-color: #1e4d2b !important;
+        }
+        
         .btn-logout > div.stButton > button { background-color: #d32f2f !important; color: white !important; }
         </style>
     """, unsafe_allow_html=True)
@@ -252,13 +266,35 @@ def render_dashboard():
     # --- CONTENIDO DE LAS PANTALLAS ---
     if st.session_state.pantalla_actual == "Novedades":
         st.markdown("<h4 style='color:#1E3D14;'>Publicaciones de la Comunidad</h4>", unsafe_allow_html=True)
+        
+        # NUEVO AJUSTE: Expansor con signo de más para crear publicaciones (Texto y Foto)
+        with st.expander("➕ Crear Publicación", expanded=False):
+            nuevo_texto = st.text_area("¿Qué está pasando en tu cultivo?", placeholder="Escribe aquí tu estado...", key="txt_nueva_pub")
+            nueva_foto = st.file_uploader("Añadir foto (opcional)", type=["png", "jpg", "jpeg"], key="img_nueva_pub")
+            
+            # Botón verde con letras blancas para enviar
+            if st.button("Publicar", type="primary", use_container_width=True, key="btn_guardar_pub"):
+                if nuevo_texto.strip() or nueva_foto is not None:
+                    st.session_state.db_publicaciones.insert(0, {
+                        "id": len(st.session_state.db_publicaciones) + 1,
+                        "autor": st.session_state.usuario_actual,
+                        "contenido": nuevo_texto,
+                        "imagen": nueva_foto
+                    })
+                    st.success("¡Publicado con éxito!")
+                    st.rerun()
+
+        # Listado de publicaciones impresas
         for post in st.session_state.db_publicaciones:
             st.markdown(f"""
                 <div class="agro-card">
                     <div style="font-weight:bold; color:#1E3D14;">👤 {post['autor']}</div>
-                    <p style="margin: 8px 0;">{post['contenido']}</p>
+                    <p style="margin: 8px 0; font-weight: normal;">{post['contenido']}</p>
                 </div>
             """, unsafe_allow_html=True)
+            # Mostrar la foto si la tiene
+            if post.get("imagen") is not None:
+                st.image(post["imagen"], use_column_width=True)
 
     elif st.session_state.pantalla_actual == "Market":
         for item in st.session_state.db_market:
