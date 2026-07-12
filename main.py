@@ -1,6 +1,6 @@
 import streamlit as st
 import mysql.connector
-import requests
+import random
 
 # Configuración de página
 st.set_page_config(page_title="AgroCampo", page_icon="🌱", layout="centered")
@@ -28,6 +28,12 @@ if "pantalla_actual" not in st.session_state:
 if "pantalla_auth" not in st.session_state:
     st.session_state.pantalla_auth = "login"
 
+# Historial del Chat de la IA
+if "historial_ia" not in st.session_state:
+    st.session_state.historial_ia = [
+        {"role": "assistant", "content": "¡Hola! Soy AgroIA, tu consultor agrícola virtual. ¿En qué puedo ayudarte hoy? Puedes preguntarme sobre control de plagas, ciclos de siembra, fertilización o consejos para tus cultivos."}
+    ]
+
 # Estructuras temporales en memoria
 if "db_publicaciones" not in st.session_state:
     st.session_state.db_publicaciones = [
@@ -41,8 +47,27 @@ if "db_market" not in st.session_state:
 if "likes_dados" not in st.session_state:
     st.session_state.likes_dados = {}
 
+# LÓGICA DE RESPUESTAS DEL ASISTENTE AGROIA
+def responder_ia(mensaje_usuario):
+    msg = mensaje_usuario.lower()
+    if "plaga" in msg or "insecto" in msg or "enfermedad" in msg:
+        return "Para el control de plagas de forma orgánica, te recomiendo aplicar una infusión de ajo y ají picante diluida en agua, o usar aceite de Neem. Esto aleja a los pulgones y orugas sin dañar la planta."
+    elif "maiz" in msg or "maíz" in msg:
+        return "El cultivo de maíz requiere un suelo con buen drenaje y rico en materia orgánica. Recuerda sembrar a una profundidad de 3 a 5 cm y mantener un riego constante, especialmente durante la floración."
+    elif "fertilizante" in msg or "abono" in msg or "npk" in msg:
+        return "El nitrógeno (N) estimula el crecimiento de las hojas, el fósforo (P) fortalece las raíces y flores, y el potasio (K) ayuda al desarrollo del fruto. Para suelos desgastados, el humus de lombriz es una excelente alternativa natural."
+    elif "lara" in msg or "clima" in msg:
+        return "En la región de Lara, las condiciones semiáridas o de valles altos varían. Para zonas secas, optimiza usando riego por goteo y aprovecha cultivos resistentes como las leguminosas o raíces."
+    else:
+        respuestas_general = [
+            "Excelente consulta. Recuerda revisar la humedad del suelo antes de planificar tu jornada de riego.",
+            "Para darte una mejor recomendación, ¿podrías indicarme qué tipo de cultivo tienes actualmente?",
+            "Un buen monitoreo a tiempo evita el 80% de las pérdidas en las cosechas. ¡No olvides revisar el revés de las hojas!"
+        ]
+        return random.choice(respuestas_general)
+
 # ==========================================
-# 🚪 PANEL DE AUTENTICACIÓN
+# 🚪 PANEL DE AUTENTICACIÓN (LOGIN, REGISTRO, RECUPERACIÓN)
 # ==========================================
 def render_autentizacion():
     st.markdown("""
@@ -58,40 +83,101 @@ def render_autentizacion():
             border-radius: 20px;
             padding: 3rem 2rem !important;
             max-width: 400px !important;
-            margin-top: 10vh;
+            margin-top: 8vh;
             border: 1px solid rgba(255, 255, 255, 0.2);
             box-shadow: 0 15px 30px rgba(0,0,0,0.5);
         }
         h1, h2, h3, p, div[data-testid="stWidgetLabel"] p { color: #ffffff !important; font-weight: 500 !important; }
+        
+        /* Botón de acción principal verde */
         button[kind="primary"] {
             background-color: #4CAF50 !important;
             color: white !important;
             border-radius: 12px !important;
             font-weight: bold !important;
             padding: 0.6rem !important;
+            border: none !important;
         }
-        button[kind="secondary"] {
+        
+        /* Enlaces secundarios transparentes/blancos */
+        div.stButton > button[kind="secondary"] {
             background: transparent !important;
             color: #a3cfbb !important;
             border: none !important;
             box-shadow: none !important;
+            text-decoration: underline;
+            font-size: 14px !important;
+        }
+        div.stButton > button[kind="secondary"]:hover {
+            color: #ffffff !important;
         }
         </style>
     """, unsafe_allow_html=True)
 
+    # --- CASO 1: LOGIN ---
     if st.session_state.pantalla_auth == "login":
-        st.markdown('<div style="text-align:center; font-size:32px; font-weight:bold; color:white;">🌱 AgroCampo</div>', unsafe_allow_html=True)
-        user_input = st.text_input("Usuario")
-        pass_input = st.text_input("Contraseña", type="password")
+        st.markdown('<div style="text-align:center; font-size:32px; font-weight:bold; color:white; margin-bottom:20px;">🌱 AgroCampo</div>', unsafe_allow_html=True)
+        user_input = st.text_input("Usuario", key="login_user")
+        pass_input = st.text_input("Contraseña", type="password", key="login_pass")
         
         if st.button("ACCEDER", type="primary", use_container_width=True):
             st.session_state.autenticado = True
             if user_input.strip():
                 st.session_state.username_actual = user_input
+                st.session_state.usuario_actual = user_input
+            st.rerun()
+            
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Crear cuenta", kind="secondary", key="goto_register"):
+                st.session_state.pantalla_auth = "registro"
+                st.rerun()
+        with col2:
+            if st.button("¿Olvidó su clave?", kind="secondary", key="goto_recovery"):
+                st.session_state.pantalla_auth = "recuperacion"
+                st.rerun()
+
+    # --- CASO 2: REGISTRO ---
+    elif st.session_state.pantalla_auth == "registro":
+        st.markdown('<div style="text-align:center; font-size:26px; font-weight:bold; color:white; margin-bottom:20px;">📝 Registro de Productor</div>', unsafe_allow_html=True)
+        reg_nombre = st.text_input("Nombre Completo", key="reg_nom")
+        reg_user = st.text_input("Nombre de Usuario", key="reg_usr")
+        reg_pass = st.text_input("Contraseña", type="password", key="reg_pwd")
+        reg_ubi = st.text_input("Ubicación (Ej: Lara, Venezuela)", key="reg_ubc")
+        
+        if st.button("REGISTRARSE", type="primary", use_container_width=True):
+            if reg_nombre.strip() and reg_user.strip() and reg_pass.strip():
+                st.session_state.usuario_actual = reg_nombre
+                st.session_state.username_actual = reg_user
+                st.session_state.ubicacion_actual = reg_ubi if reg_ubi.strip() else "Lara, Venezuela"
+                st.session_state.autenticado = True
+                st.success("¡Cuenta creada exitosamente!")
+                st.rerun()
+            else:
+                st.error("Por favor rellene los campos obligatorios.")
+                
+        if st.button("Volver al Inicio de Sesión", kind="secondary", key="back_to_login_reg"):
+            st.session_state.pantalla_auth = "login"
+            st.rerun()
+
+    # --- CASO 3: RECUPERACIÓN ---
+    elif st.session_state.pantalla_auth == "recuperacion":
+        st.markdown('<div style="text-align:center; font-size:24px; font-weight:bold; color:white; margin-bottom:20px;">🔑 Recuperar Acceso</div>', unsafe_allow_html=True)
+        st.markdown('<p style="font-size:14px; text-align:center;">Introduzca su usuario o correo para verificar sus datos y reestablecer su contraseña.</p>', unsafe_allow_html=True)
+        rec_user = st.text_input("Usuario o Correo Electrónico", key="rec_usr")
+        
+        if st.button("ENVIAR CÓDIGO DE VERIFICACIÓN", type="primary", use_container_width=True):
+            if rec_user.strip():
+                st.success(f"Se ha enviado un enlace de recuperación asociado a: {rec_user}")
+            else:
+                st.error("Por favor introduzca su usuario.")
+                
+        if st.button("Volver al Inicio de Sesión", kind="secondary", key="back_to_login_rec"):
+            st.session_state.pantalla_auth = "login"
             st.rerun()
 
 # ==========================================
-# 🌱 INTERFAZ PRINCIPAL (MENÚ ARRIBA)
+# 🌱 INTERFAZ PRINCIPAL (DASHBOARD)
 # ==========================================
 def render_dashboard():
     st.markdown("""
@@ -103,14 +189,17 @@ def render_dashboard():
         .agro-card { background-color: #FFFFFF; border-radius: 14px; padding: 18px; border: 1px solid #EAEAEA; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
         .post-author { font-weight: bold; color: #1E3D14; font-size: 15px; }
         
-        /* BOTONES DEL MENÚ -> Verdes con Letras Blancas */
+        /* VISIBILIDAD DE TEXTOS SOBRE FONDO CLARO */
+        label, div[data-testid="stWidgetLabel"] p { color: #1E3D14 !important; font-weight: 600 !important; }
+        .stMarkdown p, p, span { color: #333333 !important; }
+        .stExpander details summary { color: #1E3D14 !important; font-weight: bold !important; font-size: 15px; }
+        
+        /* BOTONES DEL MENÚ DE NAVEGACIÓN */
         div.stButton > button {
             background-color: #2e6d38 !important; color: white !important; border-radius: 10px !important;
             border: 1px solid #1e4d2b !important; font-weight: 600 !important;
         }
-        div.stButton > button:hover {
-            background-color: #24572c !important;
-        }
+        div.stButton > button:hover { background-color: #24572c !important; color: white !important; }
         .btn-logout > div.stButton > button { background-color: #d32f2f !important; border: 1px solid #b71c1c !important; }
         </style>
     """, unsafe_allow_html=True)
@@ -121,14 +210,13 @@ def render_dashboard():
     # 2. Barra de búsqueda superior global
     busqueda = st.text_input("🔍 Buscar publicaciones, productos o amigos...", placeholder="Ej. Maíz, Lara, Fertilizante...", key="barra_busqueda_global")
 
-    # 3. MENÚ DE NAVEGACIÓN SUPERIOR (Justo debajo de la búsqueda)
-    cols_nav = st.columns(3)
-    secciones = ["Novedades", "Market", "Perfil"]
-    iconos = ["📰 Novedades", "🛒 Market", "👤 Perfil"]
+    # 3. Menú superior (4 secciones incluyendo AgroIA)
+    cols_nav = st.columns(4)
+    secciones = ["Novedades", "Market", "AgroIA", "Perfil"]
+    iconos = ["📰 Novedades", "🛒 Market", "🤖 AgroIA", "👤 Perfil"]
     
     for indice, col in enumerate(cols_nav):
         with col:
-            # Ponemos un asterisco o estilo para marcar el activo si lo deseas
             es_activa = secciones[indice] == st.session_state.pantalla_actual
             label = f"✨ {iconos[indice]}" if es_activa else iconos[indice]
             if st.button(label, key=f"nav_dashboard_top_{secciones[indice]}", use_container_width=True):
@@ -155,14 +243,13 @@ def render_dashboard():
                     st.rerun()
 
         st.markdown("<h4 style='color:#1E3D14;'>Publicaciones de la Comunidad</h4>", unsafe_allow_html=True)
-        
         for post in st.session_state.db_publicaciones:
             if busqueda.lower() in post["contenido"].lower() or busqueda.lower() in post["autor"].lower():
                 st.markdown(f"""
                     <div class="agro-card">
                         <div class="post-author">👤 {post['autor']}</div>
-                        <p style="color: #444444 !important; margin: 8px 0; font-size:15px;">{post['contenido']}</p>
-                        <small style="color: #888888;">👍 {post['likes']} Me gusta &nbsp;|&nbsp; 💬 {len(post['comentarios'])} Comentarios</small>
+                        <p style="margin: 8px 0; font-size:15px;">{post['contenido']}</p>
+                        <small style="color: #666666;">👍 {post['likes']} Me gusta &nbsp;|&nbsp; 💬 {len(post['comentarios'])} Comentarios</small>
                     </div>
                 """, unsafe_allow_html=True)
                 
@@ -170,13 +257,11 @@ def render_dashboard():
                 with col_lk:
                     llave_like = f"{st.session_state.username_actual}_{post['id']}"
                     ya_dio_like = st.session_state.likes_dados.get(llave_like, False)
-                    
                     if st.button("👍 Me gusta" if not ya_dio_like else "✅ Te gusta", key=f"like_{post['id']}", use_container_width=True):
                         if not ya_dio_like:
                             post["likes"] += 1
                             st.session_state.likes_dados[llave_like] = True
                             st.rerun()
-                
                 with col_cm:
                     with st.popover("💬 Comentar", key=f"popover_{post['id']}"):
                         nuevo_comentario = st.text_input("Escribe tu comentario", key=f"in_com_{post['id']}")
@@ -184,11 +269,6 @@ def render_dashboard():
                             if nuevo_comentario.strip():
                                 post["comentarios"].append(f"{st.session_state.usuario_actual}: {nuevo_comentario}")
                                 st.rerun()
-                
-                if post["comentarios"]:
-                    with st.expander("Ver comentarios anteriores", key=f"exp_com_{post['id']}"):
-                        for c in post["comentarios"]:
-                            st.caption(c)
 
     # --- PANTALLA: MARKET ---
     elif st.session_state.pantalla_actual == "Market":
@@ -196,7 +276,6 @@ def render_dashboard():
             prod_titulo = st.text_input("Nombre del Producto / Insumo", key="market_titulo")
             prod_precio = st.text_input("Precio ($)", key="market_precio")
             prod_desc = st.text_area("Descripción de la oferta", key="market_desc")
-            prod_foto = st.file_uploader("Subir Foto del Insumo", type=["png", "jpg", "jpeg"], key="market_foto")
             
             if st.button("Lanzar al Mercado", key="btn_market_lanzar", use_container_width=True):
                 if prod_titulo.strip() and prod_precio.strip():
@@ -205,33 +284,55 @@ def render_dashboard():
                         "titulo": prod_titulo,
                         "precio": prod_precio,
                         "descripcion": prod_desc,
-                        "foto": prod_foto
+                        "foto": None
                     })
-                    st.success("¡Producto listado en el mercado agropecuario!")
+                    st.success("¡Producto listado con éxito!")
                     st.rerun()
 
         st.markdown("<h4 style='color:#1E3D14;'>Catálogo Disponible</h4>", unsafe_allow_html=True)
         for item in st.session_state.db_market:
-            # Filtro por barra de búsqueda también en el catálogo
             if busqueda.lower() in item["titulo"].lower() or busqueda.lower() in item["descripcion"].lower():
                 st.markdown(f"""
                     <div class="agro-card">
                         <div style="font-size: 18px; font-weight: bold; color: #2e6d38;">📦 {item['titulo']}</div>
-                        <div style="font-size: 16px; color: #1E3D14; font-weight: bold; margin: 4px 0;">Precio: {item['precio']}$</div>
-                        <p style="color: #555555 !important; margin: 0; font-size: 14px;">{item['descripcion']}</p>
+                        <div style="font-size: 16px; font-weight: bold; margin: 4px 0;">Precio: {item['precio']}$</div>
+                        <p style="margin: 0; font-size: 14px;">{item['descripcion']}</p>
                     </div>
                 """, unsafe_allow_html=True)
-                if item["foto"] is not None:
-                    st.image(item["foto"], use_container_width=True)
+
+    # --- PANTALLA: 🤖 AGROIA ---
+    elif st.session_state.pantalla_actual == "AgroIA":
+        st.markdown("<h4 style='color:#1E3D14;'>🤖 Consultor de Inteligencia Artificial Agrícola</h4>", unsafe_allow_html=True)
+        
+        for chat in st.session_state.historial_ia:
+            if chat["role"] == "assistant":
+                st.markdown(f"""
+                    <div style="background-color: #e8f5e9; padding: 12px; border-radius: 10px; margin-bottom: 10px; border-left: 5px solid #2e6d38;">
+                        <b style="color: #1e4d2b;">🤖 AgroIA:</b><br>{chat['content']}
+                    </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown(f"""
+                    <div style="background-color: #ffffff; padding: 12px; border-radius: 10px; margin-bottom: 10px; border-left: 5px solid #1E3D14; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                        <b style="color: #333;">👤 Tú:</b><br>{chat['content']}
+                    </div>
+                """, unsafe_allow_html=True)
+        
+        with st.form("form_chat_ia", clear_on_submit=True):
+            entrada_usuario = st.text_input("Escribe tu pregunta o duda agrícola aquí:", placeholder="Ej. ¿Cómo controlo una plaga en mi maíz?")
+            enviar_chat = st.form_submit_button("Consultar Asistente", use_container_width=True)
+            if enviar_chat and entrada_usuario.strip():
+                st.session_state.historial_ia.append({"role": "user", "content": entrada_usuario})
+                respuesta = responder_ia(entrada_usuario)
+                st.session_state.historial_ia.append({"role": "assistant", "content": respuesta})
+                st.rerun()
 
     # --- PANTALLA: PERFIL ---
     elif st.session_state.pantalla_actual == "Perfil":
         st.markdown("<h4 style='color:#1E3D14;'>⚙️ Configuración del Perfil Profesional</h4>", unsafe_allow_html=True)
-        
         with st.form("form_perfil"):
             nuevo_nombre = st.text_input("Modificar Nombre Completo", value=st.session_state.usuario_actual)
             nueva_ubicacion = st.text_input("Modificar Ubicación Base", value=st.session_state.ubicacion_actual)
-            
             if st.form_submit_button("Guardar Cambios Técnicos", use_container_width=True):
                 st.session_state.usuario_actual = nuevo_nombre
                 st.session_state.ubicacion_actual = nueva_ubicacion
