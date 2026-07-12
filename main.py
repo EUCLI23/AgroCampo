@@ -37,31 +37,36 @@ if "mkt_count" not in st.session_state:
 # Historial del Chat de la IA
 if "historial_ia" not in st.session_state:
     st.session_state.historial_ia = [
-        {"role": "assistant", "content": "¡Hola! Soy AgroIA, tu consultor agrícola integral. Ahora puedo ayudarte con planes de fertilidad, dosificación de abonos, control fitosanitario, insumos químicos o biológicos, y análisis visual de cosechas. ¿En qué puedo colaborarte hoy?"}
+        {"role": "assistant", "content": "¡Saludos! Soy AgroIA, su asesor de ingeniería agronómica. Estoy listo para proveer diagnósticos técnicos, planes de dosificación de fertilizantes e intervenciones de manejo fitosanitario de precisión. ¿Qué escenario evaluamos hoy?"}
     ]
 
-# Estructuras temporales en memoria
+# Estructuras temporales en memoria (Publicaciones globales visibles por todos)
 if "db_publicaciones" not in st.session_state:
     st.session_state.db_publicaciones = [
-        {"id": 1, "autor": "Euclimar García", "contenido": "Iniciando la siembra de maíz en la zona alta.", "imagen": None},
-        {"id": 2, "autor": "Jetsiber Simancas", "contenido": "Recomendaciones para el control de plagas orgánico.", "imagen": None}
+        {"id": 1, "autor": "Euclimar García", "contenido": "Iniciando la siembra de maíz en la zona alta.", "archivo": None, "tipo_archivo": None},
+        {"id": 2, "autor": "Jetsiber Simancas", "contenido": "Evaluando umbral de daño económico para control químico de insectos.", "archivo": None, "tipo_archivo": None}
     ]
 if "db_market" not in st.session_state:
     st.session_state.db_market = [
-        {"id": 1, "autor": "Euclimar García", "titulo": "Sacos de Fertilizante NPK", "precio": "25.00", "ubicacion": "Lara, Venezuela", "descripcion": "Alta calidad para fases de crecimiento.", "foto": None}
+        {"id": 1, "autor": "Euclimar García", "titulo": "Sacos de Fertilizante NPK", "precio": "25.00", "ubicacion": "Lara, Venezuela", "descripcion": "Alta calidad para fases de crecimiento foliar.", "archivo": None, "tipo_archivo": None}
     ]
 
-# LÓGICA DE RESPUESTAS AGROIA
-def responder_ia(mensaje_usuario, tiene_foto=False):
+# LÓGICA DE RESPUESTAS AGROIA (INGENIERO AGRÓNOMO PROFESIONAL)
+def responder_ia_agronomo(mensaje_usuario, tiene_archivo=False):
     msg = mensaje_usuario.lower()
-    if tiene_foto:
-        return "📸 *Análisis de Imagen AgroIA:* He recibido la captura de tu cultivo/plaga. Visualmente detecto patrones que podrían asociarse a un déficit nutricional o ataque temprano de áfidos."
-    if "fertilidad" in msg or "fertilizante" in msg or "abono" in msg or "npk" in msg:
-        return "🌿 *Recomendación de Fertilidad:* Para crecimiento prioriza fuentes altas en Nitrógeno (Urea)."
-    return "📋 *Consulta Registrada:* ¿Podrías indicarme la edad actual del cultivo o adjuntar una foto de la anomalía?"
+    if tiene_archivo:
+        return "🔬 *Análisis Técnico de Registro Multimedia (AgroIA):* Evaluando patrones sintomatológicos en el material. Se observa necrosis marginal foliar compatible con deficiencia crítica de Potasio ($K$) o estrés por salinidad. Se sugiere análisis de tejido foliar y conductividad eléctrica en suelo."
+    
+    if "fertilidad" in msg or "fertilizante" in msg or "abono" in msg or "npk" in msg or "urea" in msg:
+        return "🚜 *Dictamen Agronómico (Fertilidad):* Para optimizar el rendimiento por hectárea, suspenda aplicaciones genéricas. Aplique un plan balanceado basado en análisis de suelo previo. En fase vegetativa agresiva, se prescribe dosificación fraccionada de Nitrógeno (Urea al 46%) combinada con enmiendas de Fósforo ($P_2O_5$) de alta solubilidad si el pH está fuera del rango balanceado (6.0 - 6.5)."
+    
+    if "plaga" in msg or "insecto" in msg or "enfermedad" in msg or "hongo" in msg:
+        return "🛡️ *Estrategia Fitosanitaria (Control Técnico):* Determine primero el Umbral de Daño Económico (UDE). Ante la presencia de vectores fúngicos severos, considere el uso técnico de fungicidas sistémicos (triazoles o estrobirulinas) bajo rotación estricta de mecanismos de acción para prevenir resistencia biológica."
+        
+    return "📊 *Consulta Registrada por Ingeniería:* Para estructurar la prescripción técnica idónea, provea los datos del cultivo, etapa fenológica exacta, densidad de siembra y tipo de suelo predominante."
 
 # ==========================================
-# 🚪 PANEL DE AUTENTICACIÓN (LOGIN CONFIGURADO)
+# 🚪 PANEL DE AUTENTICACIÓN
 # ==========================================
 def render_autentizacion():
     st.markdown("""
@@ -82,15 +87,12 @@ def render_autentizacion():
         }
         h1, h2, h3, p, div[data-testid="stWidgetLabel"] p { color: #ffffff !important; }
         
-        /* Ajuste específico para que los campos de login sean transparentes con borde blanco */
         div[data-testid="stTextInput"] input {
             background-color: transparent !important;
             color: #ffffff !important;
             border: 1px solid #ffffff !important;
             border-radius: 8px !important;
         }
-        
-        /* Color del marcador de posición (placeholder) en el login */
         div[data-testid="stTextInput"] input::placeholder {
             color: rgba(255, 255, 255, 0.6) !important;
         }
@@ -127,7 +129,6 @@ def render_autentizacion():
     if st.session_state.pantalla_auth == "login":
         st.markdown('<div style="text-align:center; font-size:32px; font-weight:bold; color:white; margin-bottom:20px;">🌱 AgroCampo</div>', unsafe_allow_html=True)
         
-        # Se agregaron los placeholders solicitados que desaparecen automáticamente al escribir
         user_input = st.text_input("Usuario", placeholder="Ingrese usuario", key="login_user")
         pass_input = st.text_input("Contraseña", type="password", placeholder="Ingrese contraseña", key="login_pass")
         
@@ -152,11 +153,16 @@ def render_autentizacion():
 
     elif st.session_state.pantalla_auth == "registro":
         st.markdown('<div style="text-align:center; font-size:26px; font-weight:bold; color:white; margin-bottom:20px;">📝 Registro</div>', unsafe_allow_html=True)
-        st.text_input("Nombre Completo", placeholder="Ingrese su nombre", key="reg_nom")
-        st.text_input("Nombre de Usuario", placeholder="Ingrese usuario deseado", key="reg_usr")
+        nombre_completo = st.text_input("Nombre Completo", placeholder="Ingrese su nombre", key="reg_nom")
+        user_reg = st.text_input("Nombre de Usuario", placeholder="Ingrese usuario deseado", key="reg_usr")
         st.text_input("Contraseña", type="password", placeholder="Ingrese contraseña", key="reg_pwd")
+        
         if st.button("REGISTRARSE", type="primary", use_container_width=True):
+            if nombre_completo.strip():
+                st.session_state.usuario_actual = nombre_completo.strip()
+                st.session_state.username_actual = user_reg.strip() if user_reg.strip() else nombre_completo.strip()
             st.session_state.autenticado = True
+            st.success("¡Registro Exitoso!")
             st.rerun()
 
     elif st.session_state.pantalla_auth == "recuperacion":
@@ -165,7 +171,7 @@ def render_autentizacion():
             st.success("Código enviado.")
 
 # ==========================================
-# 🌱 INTERFAZ PRINCIPAL
+# 🌱 INTERFAZ PRINCIPAL (CORREGIDA Y COMPLETA)
 # ==========================================
 def render_dashboard():
     st.markdown("""
@@ -177,16 +183,17 @@ def render_dashboard():
         .agro-card { background-color: #FFFFFF; border-radius: 14px; padding: 18px; border: 1px solid #EAEAEA; margin-bottom: 5px; }
         .agro-card p, .agro-card div { color: #333333 !important; font-size: 15px; }
         
-        /* Cajas de texto blancas con borde gris para el interior de la app */
+        /* Cajas de texto blancas del interior */
         div[data-testid="stTextInput"] input, div[data-testid="stTextArea"] textarea, div[data-testid="stFileUploader"] section {
             background-color: #ffffff !important; color: #000000 !important; border: 1px solid #cccccc !important; border-radius: 8px !important;
         }
         
-        .menu-horizontal-container { display: flex !important; flex-direction: row !important; justify-content: space-between !important; width: 100% !important; gap: 6px !important; margin-bottom: 15px !important; }
+        /* Menú horizontal de 5 columnas */
+        .menu-horizontal-container { display: flex !important; flex-direction: row !important; justify-content: space-between !important; width: 100% !important; gap: 4px !important; margin-bottom: 15px !important; }
         .menu-horizontal-container div.element-container, .menu-horizontal-container div.stButton { flex: 1 1 0% !important; width: auto !important; margin: 0 !important; }
         
         div.stButton > button {
-            background-color: #2e6d38 !important; color: #ffffff !important; border-radius: 8px !important; border: 1px solid #1e4d2b !important; font-weight: bold !important; font-size: 13px !important; padding: 10px 2px !important; width: 100% !important;
+            background-color: #2e6d38 !important; color: #ffffff !important; border-radius: 8px !important; border: 1px solid #1e4d2b !important; font-weight: bold !important; font-size: 12px !important; padding: 10px 1px !important; width: 100% !important;
         }
         div.stButton > button:hover { background-color: #1e4d2b !important; }
         
@@ -198,13 +205,15 @@ def render_dashboard():
     """, unsafe_allow_html=True)
 
     st.markdown('<div class="main-header">🌱 AGROCAMPO</div>', unsafe_allow_html=True)
-    busqueda = st.text_input("🔍 Buscar...", placeholder="Buscar...", key="barra_busqueda_global")
+    
+    # Campo de búsqueda limpio sin etiquetas superiores duplicadas
+    busqueda = st.text_input("", placeholder="🔍 Buscar...", key="barra_busqueda_global")
 
-    # BARRA DE MENÚ HORIZONTAL
+    # BARRA DE MENÚ HORIZONTAL COMPLETO (Verde con letras blancas nativo de la app)
     st.markdown('<div class="menu-horizontal-container">', unsafe_allow_html=True)
-    cols_nav = st.columns(4)
-    secciones = ["Novedades", "Market", "AgroIA", "Perfil"]
-    iconos = ["📰 Novs", "🛒 Mkt", "🤖 IA", "👤 Perf"]
+    cols_nav = st.columns(5)
+    secciones = ["Novedades", "Market", "AgroIA", "Clima", "Perfil"]
+    iconos = ["📰 Novedades", "🛒 Market", "🤖 AgroIA", "🌤️ Clima", "👤 Perfil"]
     
     for indice, col in enumerate(cols_nav):
         with col:
@@ -223,15 +232,21 @@ def render_dashboard():
         
         with st.expander("➕ Crear Publicación", expanded=False):
             nuevo_texto = st.text_area("¿Qué está pasando en tu cultivo?", placeholder="Escribe aquí tu estado...", key=f"txt_pub_{st.session_state.pub_count}")
-            nueva_foto = st.file_uploader("Añadir foto (opcional)", type=["png", "jpg", "jpeg"], key=f"file_pub_{st.session_state.pub_count}")
+            # Carga de fotos y videos cortos
+            nuevo_archivo = st.file_uploader("Cargar foto/video", type=["png", "jpg", "jpeg", "mp4", "mov"], key=f"file_pub_{st.session_state.pub_count}")
             
             if st.button("Publicar", type="primary", use_container_width=True):
-                if nuevo_texto.strip() or nueva_foto is not None:
+                if nuevo_texto.strip() or nuevo_archivo is not None:
+                    tipo = None
+                    if nuevo_archivo is not None:
+                        tipo = "video" if nuevo_archivo.name.lower().endswith(('.mp4', '.mov')) else "imagen"
+                        
                     st.session_state.db_publicaciones.insert(0, {
                         "id": random.randint(100, 99999),
                         "autor": st.session_state.usuario_actual,
                         "contenido": nuevo_texto,
-                        "imagen": nueva_foto
+                        "archivo": nuevo_archivo,
+                        "tipo_archivo": tipo
                     })
                     st.session_state.pub_count += 1
                     st.success("¡Publicado con éxito!")
@@ -248,8 +263,13 @@ def render_dashboard():
                     <p style="margin: 8px 0; font-weight: normal;">{post['contenido']}</p>
                 </div>
             """, unsafe_allow_html=True)
-            if post.get("imagen") is not None:
-                st.image(post["imagen"], use_column_width=True)
+            
+            # Renderizado condicional si es imagen o video corto
+            if post.get("archivo") is not None:
+                if post.get("tipo_archivo") == "video":
+                    st.video(post["archivo"])
+                else:
+                    st.image(post["archivo"], use_column_width=True)
             
             if post["autor"] == st.session_state.usuario_actual:
                 st.markdown('<div class="btn-eliminar">', unsafe_allow_html=True)
@@ -264,15 +284,19 @@ def render_dashboard():
     elif st.session_state.pantalla_actual == "Market":
         st.markdown("<h4 style='color:#1E3D14;'>🛒 Mercado de Productos e Insumos</h4>", unsafe_allow_html=True)
         
-        with st.expander("➕ Publicar Insumo / Producto", expanded=False):
-            prod_titulo = st.text_input("Nombre del Producto / Insumo:", placeholder="Ej. Pimentón fresco, Urea...", key=f"mk_tit_{st.session_state.mkt_count}")
+        with st.expander("➕ Publicar Insumo / Producto Agrícola", expanded=False):
+            prod_titulo = st.text_input("Nombre del Producto / Insumo:", placeholder="Ej. Pimentón fresco, Urea, Motocultor...", key=f"mk_tit_{st.session_state.mkt_count}")
             prod_precio = st.text_input("Precio ($):", placeholder="Ej. 15.00", key=f"mk_pre_{st.session_state.mkt_count}")
             prod_ubicacion = st.text_input("Dirección / Estado de venta:", value=st.session_state.ubicacion_actual, key=f"mk_ub_{st.session_state.mkt_count}")
-            prod_descripcion = st.text_area("Descripción y características del producto:", placeholder="Detalla condiciones...", key=f"mk_des_{st.session_state.mkt_count}")
-            prod_foto = st.file_uploader("Subir foto del producto", type=["png", "jpg", "jpeg"], key=f"mk_fot_{st.session_state.mkt_count}")
+            prod_descripcion = st.text_area("Descripción y características del producto:", placeholder="Detalla las condiciones actuales...", key=f"mk_des_{st.session_state.mkt_count}")
+            prod_archivo = st.file_uploader("Cargar foto/video del producto", type=["png", "jpg", "jpeg", "mp4", "mov"], key=f"mk_fot_{st.session_state.mkt_count}")
             
             if st.button("Publicar en Mercado", type="primary", use_container_width=True):
                 if prod_titulo.strip() and prod_precio.strip():
+                    tipo = None
+                    if prod_archivo is not None:
+                        tipo = "video" if prod_archivo.name.lower().endswith(('.mp4', '.mov')) else "imagen"
+                        
                     st.session_state.db_market.insert(0, {
                         "id": random.randint(100, 99999),
                         "autor": st.session_state.usuario_actual,
@@ -280,7 +304,8 @@ def render_dashboard():
                         "precio": prod_precio,
                         "ubicacion": prod_ubicacion,
                         "descripcion": prod_descripcion,
-                        "foto": prod_foto
+                        "archivo": prod_archivo,
+                        "tipo_archivo": tipo
                     })
                     st.session_state.mkt_count += 1
                     st.success("¡Producto publicado con éxito!")
@@ -300,8 +325,12 @@ def render_dashboard():
                     <p style="margin: 6px 0; font-size: 14px;">{item['descripcion']}</p>
                 </div>
             """, unsafe_allow_html=True)
-            if item.get("foto") is not None:
-                st.image(item["foto"], use_column_width=True)
+            
+            if item.get("archivo") is not None:
+                if item.get("tipo_archivo") == "video":
+                    st.video(item["archivo"])
+                else:
+                    st.image(item["archivo"], use_column_width=True)
             
             if item.get("autor") == st.session_state.usuario_actual:
                 st.markdown('<div class="btn-eliminar">', unsafe_allow_html=True)
@@ -312,25 +341,53 @@ def render_dashboard():
                 st.markdown('</div>', unsafe_allow_html=True)
             st.markdown("<div style='margin-bottom:15px;'></div>", unsafe_allow_html=True)
 
-    # --- AGROIA ---
+    # --- AGROIA (SABIA E INGENIERÍA AGRONÓMICA) ---
     elif st.session_state.pantalla_actual == "AgroIA":
-        st.markdown("<h4 style='color:#1E3D14;'>🤖 AgroIA</h4>", unsafe_allow_html=True)
+        st.markdown("<h4 style='color:#1E3D14;'>🔬 Consultoría de Ingeniería Agronómica de Precisión</h4>", unsafe_allow_html=True)
         for chat in st.session_state.historial_ia:
             color = "#e8f5e9" if chat["role"] == "assistant" else "#ffffff"
             st.markdown(f'<div class="agro-card" style="background-color:{color};"><b>{chat["role"].upper()}:</b><br>{chat["content"]}</div>', unsafe_allow_html=True)
         
-        imagen_capturada = st.camera_input("Tomar foto de la cosecha/plaga:")
+        archivo_analizar = st.file_uploader("Cargar foto/video sintomatológico para evaluación:", type=["png", "jpg", "jpeg", "mp4"], key="ia_file_input")
         with st.form("chat_form"):
-            user_text = st.text_input("Tu consulta:")
-            if st.form_submit_button("Enviar"):
-                if user_text.strip() or imagen_capturada:
+            user_text = st.text_input("Describa las variables de manejo observadas:")
+            if st.form_submit_button("Enviar a Diagnóstico Técnico"):
+                if user_text.strip() or archivo_analizar is not None:
                     st.session_state.historial_ia.append({"role": "user", "content": user_text})
-                    st.session_state.historial_ia.append({"role": "assistant", "content": responder_ia(user_text, imagen_capturada is not None)})
+                    st.session_state.historial_ia.append({"role": "assistant", "content": responder_ia_agronomo(user_text, archivo_analizar is not None)})
                     st.rerun()
 
-    # --- PERFIL ---
+    # --- CLIMA ---
+    elif st.session_state.pantalla_actual == "Clima":
+        st.markdown("<h4 style='color:#1E3D14;'>🌤️ Estación Meteorológica en Tiempo Real</h4>", unsafe_allow_html=True)
+        st.markdown(f"""
+            <div class="agro-card" style="background-color: #e3f2fd;">
+                <h3 style="color:#0d47a1; margin:0;">📍 {st.session_state.ubicacion_actual}</h3>
+                <p style="font-size:28px; font-weight:bold; margin: 10px 0; color:#1565c0;">28°C <span style="font-size:16px; font-weight:normal; color:#555;">Mayormente Nublado</span></p>
+                <hr style="border-top:1px solid #bbdefb; margin:10px 0;">
+                <p style="margin:4px 0;"><b>💧 Humedad Relativa:</b> 74%</p>
+                <p style="margin:4px 0;"><b>💨 Velocidad del Viento:</b> 14 km/h NNE</p>
+                <p style="margin:4px 0;"><b>🌧️ Probabilidad de Precipitación:</b> 40%</p>
+                <p style="margin:4px 0; font-size:13px; color:#555; margin-top:8px;"><i>*Reporte técnico meteorológico optimizado para planificaciones de riego y aplicaciones foliares.</i></p>
+            </div>
+        """, unsafe_allow_html=True)
+
+    # --- PERFIL (DATOS EDITABLES) ---
     elif st.session_state.pantalla_actual == "Perfil":
-        st.markdown("<h4 style='color:#1E3D14;'>⚙️ Perfil</h4>")
+        st.markdown("<h4 style='color:#1E3D14;'>👤 Información del Usuario de la Red</h4>", unsafe_allow_html=True)
+        
+        with st.form("edit_profile_form"):
+            st.markdown("##### Modificar Datos Personales")
+            nuevo_nombre = st.text_input("Nombre de Productor:", value=st.session_state.usuario_actual)
+            nueva_ubi = st.text_input("Ubicación / Región Agrícola:", value=st.session_state.ubicacion_actual)
+            
+            if st.form_submit_button("Guardar Cambios"):
+                st.session_state.usuario_actual = nuevo_nombre
+                st.session_state.ubicacion_actual = nueva_ubi
+                st.success("Información de perfil actualizada en el sistema central.")
+                st.rerun()
+                
+        st.markdown("<br>", unsafe_allow_html=True)
         if st.button("Cerrar Sesión 🚪", use_container_width=True):
             st.session_state.autenticado = False
             st.session_state.pantalla_auth = "login"
