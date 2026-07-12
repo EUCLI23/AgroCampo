@@ -28,7 +28,7 @@ if "pantalla_actual" not in st.session_state:
 if "pantalla_auth" not in st.session_state:
     st.session_state.pantalla_auth = "login"
 
-# Estructuras temporales en memoria por si XAMPP no tiene las tablas creadas aún
+# Estructuras temporales en memoria
 if "db_publicaciones" not in st.session_state:
     st.session_state.db_publicaciones = [
         {"id": 1, "autor": "Euclimar García", "contenido": "Iniciando la siembra de maíz en la zona alta.", "likes": 5, "comentarios": ["¡Mucho éxito!", "Excelente zona"]},
@@ -39,7 +39,7 @@ if "db_market" not in st.session_state:
         {"id": 1, "titulo": "Sacos de Fertilizante NPK", "precio": "25.00", "descripcion": "Alta calidad para fases de crecimiento.", "foto": None}
     ]
 if "likes_dados" not in st.session_state:
-    st.session_state.likes_dados = {} # Guarda tuplas (usuario, post_id)
+    st.session_state.likes_dados = {}
 
 # ==========================================
 # 🚪 PANEL DE AUTENTICACIÓN
@@ -91,7 +91,7 @@ def render_autentizacion():
             st.rerun()
 
 # ==========================================
-# 🌱 INTERFAZ PRINCIPAL (SISTEMA COMPLETO)
+# 🌱 INTERFAZ PRINCIPAL (MENÚ ARRIBA)
 # ==========================================
 def render_dashboard():
     st.markdown("""
@@ -99,31 +99,49 @@ def render_dashboard():
         [data-testid="stAppViewContainer"] { background-color: #F7F9F6 !important; }
         .block-container { background-color: transparent !important; box-shadow: none !important; padding: 2rem 1rem !important; max-width: 500px !important; }
         .main-header { font-size: 36px; font-weight: 900; color: #1E3D14 !important; text-align: center; margin-bottom: 5px; letter-spacing: 1px; }
-        .sub-header { font-size: 18px; font-weight: bold; color: #2e6d38 !important; margin-bottom: 15px; text-transform: uppercase; }
+        .sub-header { font-size: 18px; font-weight: bold; color: #2e6d38 !important; margin-bottom: 15px; text-transform: uppercase; text-align: center; }
         .agro-card { background-color: #FFFFFF; border-radius: 14px; padding: 18px; border: 1px solid #EAEAEA; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
         .post-author { font-weight: bold; color: #1E3D14; font-size: 15px; }
         
+        /* BOTONES DEL MENÚ -> Verdes con Letras Blancas */
         div.stButton > button {
             background-color: #2e6d38 !important; color: white !important; border-radius: 10px !important;
             border: 1px solid #1e4d2b !important; font-weight: 600 !important;
+        }
+        div.stButton > button:hover {
+            background-color: #24572c !important;
         }
         .btn-logout > div.stButton > button { background-color: #d32f2f !important; border: 1px solid #b71c1c !important; }
         </style>
     """, unsafe_allow_html=True)
 
-    # Encabezado principal global pedido
+    # 1. Nombre de la Red Superior
     st.markdown('<div class="main-header">🌱 AGROCAMPO</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="sub-header" style="text-align:center;">Sección: {st.session_state.pantalla_actual}</div>', unsafe_allow_html=True)
+    
+    # 2. Barra de búsqueda superior global
+    busqueda = st.text_input("🔍 Buscar publicaciones, productos o amigos...", placeholder="Ej. Maíz, Lara, Fertilizante...", key="barra_busqueda_global")
+
+    # 3. MENÚ DE NAVEGACIÓN SUPERIOR (Justo debajo de la búsqueda)
+    cols_nav = st.columns(3)
+    secciones = ["Novedades", "Market", "Perfil"]
+    iconos = ["📰 Novedades", "🛒 Market", "👤 Perfil"]
+    
+    for indice, col in enumerate(cols_nav):
+        with col:
+            # Ponemos un asterisco o estilo para marcar el activo si lo deseas
+            es_activa = secciones[indice] == st.session_state.pantalla_actual
+            label = f"✨ {iconos[indice]}" if es_activa else iconos[indice]
+            if st.button(label, key=f"nav_dashboard_top_{secciones[indice]}", use_container_width=True):
+                st.session_state.pantalla_actual = secciones[indice]
+                st.rerun()
+
+    st.markdown("<hr style='border:0; border-top: 1px solid #ddd; margin: 15px 0;'>", unsafe_allow_html=True)
 
     # --- PANTALLA: NOVEDADES ---
     if st.session_state.pantalla_actual == "Novedades":
-        # Barra de búsqueda integrada abajo del título
-        busqueda = st.text_input("🔍 Buscar publicaciones o productores...", placeholder="Ej. Maíz, Lara, Plagas...")
-
-        # Formulario para nueva publicación
         with st.expander("📝 Compartir algo con la comunidad agrícola"):
-            nuevo_post = st.text_area("¿Qué está pasando en tus tierras?", placeholder="Escribe aquí tu actualización...")
-            if st.button("Publicar al Instante", use_container_width=True):
+            nuevo_post = st.text_area("¿Qué está pasando en tus tierras?", placeholder="Escribe aquí tu actualización...", key="txt_nuevo_post")
+            if st.button("Publicar al Instante", key="btn_publicar_post", use_container_width=True):
                 if nuevo_post.strip():
                     nuevo_id = len(st.session_state.db_publicaciones) + 1
                     st.session_state.db_publicaciones.insert(0, {
@@ -138,7 +156,6 @@ def render_dashboard():
 
         st.markdown("<h4 style='color:#1E3D14;'>Publicaciones de la Comunidad</h4>", unsafe_allow_html=True)
         
-        # Renderizado dinámico con filtro de búsqueda
         for post in st.session_state.db_publicaciones:
             if busqueda.lower() in post["contenido"].lower() or busqueda.lower() in post["autor"].lower():
                 st.markdown(f"""
@@ -151,18 +168,17 @@ def render_dashboard():
                 
                 col_lk, col_cm = st.columns([1, 2])
                 with col_lk:
-                    # Sistema estricto de un solo Like por usuario
                     llave_like = f"{st.session_state.username_actual}_{post['id']}"
                     ya_dio_like = st.session_state.likes_dados.get(llave_like, False)
                     
-                    if st.button("👍 Dar Like" if not ya_dio_like else "✅ Liked", key=f"like_{post['id']}", use_container_width=True):
+                    if st.button("👍 Me gusta" if not ya_dio_like else "✅ Te gusta", key=f"like_{post['id']}", use_container_width=True):
                         if not ya_dio_like:
                             post["likes"] += 1
                             st.session_state.likes_dados[llave_like] = True
                             st.rerun()
                 
                 with col_cm:
-                    with st.popover("💬 Comentar"):
+                    with st.popover("💬 Comentar", key=f"popover_{post['id']}"):
                         nuevo_comentario = st.text_input("Escribe tu comentario", key=f"in_com_{post['id']}")
                         if st.button("Enviar", key=f"btn_com_{post['id']}", use_container_width=True):
                             if nuevo_comentario.strip():
@@ -170,19 +186,19 @@ def render_dashboard():
                                 st.rerun()
                 
                 if post["comentarios"]:
-                    with st.expander("Ver comentarios anteriores"):
+                    with st.expander("Ver comentarios anteriores", key=f"exp_com_{post['id']}"):
                         for c in post["comentarios"]:
                             st.caption(c)
 
     # --- PANTALLA: MARKET ---
     elif st.session_state.pantalla_actual == "Market":
         with st.expander("🛒 Publicar un producto en venta"):
-            prod_titulo = st.text_input("Nombre del Producto / Insumo")
-            prod_precio = st.text_input("Precio ($)")
-            prod_desc = st.text_area("Descripción de la oferta")
-            prod_foto = st.file_uploader("Subir Foto del Insumo", type=["png", "jpg", "jpeg"])
+            prod_titulo = st.text_input("Nombre del Producto / Insumo", key="market_titulo")
+            prod_precio = st.text_input("Precio ($)", key="market_precio")
+            prod_desc = st.text_area("Descripción de la oferta", key="market_desc")
+            prod_foto = st.file_uploader("Subir Foto del Insumo", type=["png", "jpg", "jpeg"], key="market_foto")
             
-            if st.button("Lanzar al Mercado", use_container_width=True):
+            if st.button("Lanzar al Mercado", key="btn_market_lanzar", use_container_width=True):
                 if prod_titulo.strip() and prod_precio.strip():
                     st.session_state.db_market.insert(0, {
                         "id": len(st.session_state.db_market) + 1,
@@ -196,17 +212,19 @@ def render_dashboard():
 
         st.markdown("<h4 style='color:#1E3D14;'>Catálogo Disponible</h4>", unsafe_allow_html=True)
         for item in st.session_state.db_market:
-            st.markdown(f"""
-                <div class="agro-card">
-                    <div style="font-size: 18px; font-weight: bold; color: #2e6d38;">📦 {item['titulo']}</div>
-                    <div style="font-size: 16px; color: #1E3D14; font-weight: bold; margin: 4px 0;">Precio: {item['precio']}$</div>
-                    <p style="color: #555555 !important; margin: 0; font-size: 14px;">{item['descripcion']}</p>
-                </div>
-            """, unsafe_allow_html=True)
-            if item["foto"] is not None:
-                st.image(item["foto"], use_container_width=True)
+            # Filtro por barra de búsqueda también en el catálogo
+            if busqueda.lower() in item["titulo"].lower() or busqueda.lower() in item["descripcion"].lower():
+                st.markdown(f"""
+                    <div class="agro-card">
+                        <div style="font-size: 18px; font-weight: bold; color: #2e6d38;">📦 {item['titulo']}</div>
+                        <div style="font-size: 16px; color: #1E3D14; font-weight: bold; margin: 4px 0;">Precio: {item['precio']}$</div>
+                        <p style="color: #555555 !important; margin: 0; font-size: 14px;">{item['descripcion']}</p>
+                    </div>
+                """, unsafe_allow_html=True)
+                if item["foto"] is not None:
+                    st.image(item["foto"], use_container_width=True)
 
-    # --- PANTALLA: PERFIL (CONFIGURABLE) ---
+    # --- PANTALLA: PERFIL ---
     elif st.session_state.pantalla_actual == "Perfil":
         st.markdown("<h4 style='color:#1E3D14;'>⚙️ Configuración del Perfil Profesional</h4>", unsafe_allow_html=True)
         
@@ -222,23 +240,11 @@ def render_dashboard():
 
         st.markdown("<br><br>", unsafe_allow_html=True)
         st.markdown('<div class="btn-logout">', unsafe_allow_html=True)
-        if st.button("Cerrar Sesión 🚪", use_container_width=True):
+        if st.button("Cerrar Sesión 🚪", key="btn_logout_action", use_container_width=True):
             st.session_state.autenticado = False
             st.session_state.pantalla_auth = "login"
             st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
-
-    # --- NAVEGACIÓN INFERIOR MUTABLE ---
-    st.markdown("<br><hr style='border:0; border-top: 1px solid #eee; margin: 20px 0;'>", unsafe_allow_html=True)
-    cols_nav = st.columns(3)
-    secciones = ["Novedades", "Market", "Perfil"]
-    iconos = ["📰 Novedades", "🛒 Market", "👤 Perfil"]
-    
-    for indice, col in enumerate(cols_nav):
-        with col:
-            if st.button(iconos[indice], key=f"nav_{secciones[indice]}", use_container_width=True):
-                st.session_state.pantalla_actual = secciones[indice]
-                st.rerun()
 
 # ==========================================
 # 🚦 CONTROLADOR DE VISTAS
@@ -246,5 +252,4 @@ def render_dashboard():
 if not st.session_state.autenticado:
     render_autentizacion()
 else:
-    render_dashboard()
     render_dashboard()
