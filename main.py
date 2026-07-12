@@ -56,10 +56,10 @@ def responder_ia(mensaje_usuario, tiene_foto=False):
         return "🌿 *Recomendación de Fertilidad:* Para crecimiento prioriza fuentes altas en Nitrógeno (Urea). Para floración y llenado, requiere Fósforo y Potasio (NPK 12-24-12)."
     elif "plaga" in msg or "insecto" in msg or "veneno" in msg:
         return "🛡️ *Control Fitosanitario:* Para insectos chupadores evalúa aplicaciones técnicas o biológicas como el jabón potásico con extracto de neem."
-    return "📋 *Consulta Registrada:* ¿Podrías indicarme la edad actual del cultivo o adjuntar una foto de la anomalía para darte una respuesta exact?"
+    return "📋 *Consulta Registrada:* ¿Podrías indicarme la edad actual del cultivo o adjuntar una foto de la anomalía para darte una respuesta exacta?"
 
 # ==========================================
-# 🚪 PANEL DE AUTENTICACIÓN (LOGIN)
+# 🚪 PANEL DE AUTENTICACIÓN (LOGIN - INTACTO)
 # ==========================================
 def render_autentizacion():
     st.markdown("""
@@ -88,7 +88,6 @@ def render_autentizacion():
             padding: 0.6rem !important;
         }
         
-        /* SOLUCIÓN: Quitar bordes y fondos grises/blancos del login - SOLO TEXTO LIGERO */
         .auth-inline-container {
             display: flex !important;
             flex-direction: row !important;
@@ -104,7 +103,7 @@ def render_autentizacion():
         .auth-inline-container div.stButton > button {
             background: transparent !important;
             background-color: transparent !important;
-            color: #ffffff !important; /* Texto blanco puro */
+            color: #ffffff !important;
             border: none !important;
             box-shadow: none !important;
             text-decoration: underline !important;
@@ -135,7 +134,6 @@ def render_autentizacion():
                 st.session_state.usuario_actual = user_input
             st.rerun()
             
-        # ENLACES EN FILA HORIZONTAL SIN FORMATO DE BOTÓN
         st.markdown('<div class="auth-inline-container">', unsafe_allow_html=True)
         col1, col2 = st.columns(2)
         with col1:
@@ -174,20 +172,37 @@ def render_autentizacion():
         st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
-# 🌱 INTERFAZ PRINCIPAL (MENÚ VERDE Y TEXTO BLANCO)
+# 🌱 INTERFAZ PRINCIPAL
 # ==========================================
 def render_dashboard():
     st.markdown("""
         <style>
         [data-testid="stAppViewContainer"] { background-color: #F7F9F6 !important; }
         .block-container { max-width: 550px !important; padding: 1.5rem 1rem !important; }
-        .main-header { font-size: 34px; font-weight: 900; color: #1E3D14 !important; text-align: center; }
         
-        /* SOLUCIÓN: Letras de publicaciones oscuras (#333333) para que contrasten sobre fondo blanco */
-        .agro-card { background-color: #FFFFFF; border-radius: 14px; padding: 18px; border: 1px solid #EAEAEA; margin-bottom: 15px; }
+        .main-header { font-size: 34px; font-weight: 900; color: #1E3D14 !important; text-align: center; margin-top: 55px !important; margin-bottom: 15px; }
+        
+        .agro-card { background-color: #FFFFFF; border-radius: 14px; padding: 18px; border: 1px solid #EAEAEA; margin-bottom: 5px; }
         .agro-card p, .agro-card div { color: #333333 !important; font-size: 15px; }
         
-        /* CONTENEDOR FLEXMENÚ DE NAVEGACIÓN */
+        div[data-testid="stTextInput"] input, 
+        div[data-testid="stTextArea"] textarea,
+        div[data-testid="stFileUploader"] section {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            border: 1px solid #cccccc !important;
+            border-radius: 8px !important;
+        }
+        
+        div[data-testid="stTextInput"] input::placeholder,
+        div[data-testid="stTextArea"] textarea::placeholder {
+            color: #555555 !important;
+        }
+
+        div[data-testid="stFileUploader"] dropzone div {
+            color: #000000 !important;
+        }
+        
         .menu-horizontal-container {
             display: flex !important;
             flex-direction: row !important;
@@ -205,7 +220,6 @@ def render_dashboard():
             margin: 0 !important;
         }
         
-        /* MODIFICACIÓN EXCLUSIVA: Forzar botones generales a Verde con Letras Blancas */
         div.stButton > button {
             background-color: #2e6d38 !important; 
             color: #ffffff !important; 
@@ -219,7 +233,6 @@ def render_dashboard():
             box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
         }
         
-        /* Mantener verde y blanco en hover, focus y active */
         div.stButton > button:hover,
         div.stButton > button:focus,
         div.stButton > button:active { 
@@ -228,7 +241,6 @@ def render_dashboard():
             border: 1px solid #11301a !important;
         }
         
-        /* Estilo específico para el botón de enviar publicación (Verde/Blanco destacado) */
         button[kind="primary"] {
             background-color: #2e6d38 !important;
             color: #ffffff !important;
@@ -239,14 +251,30 @@ def render_dashboard():
             background-color: #1e4d2b !important;
         }
         
+        /* Estilo especial y discreto para el botón de eliminar */
+        .btn-eliminar > div.stButton > button {
+            background-color: #fce8e6 !important;
+            color: #cc3333 !important;
+            border: 1px solid #f5c2c2 !important;
+            font-size: 11px !important;
+            padding: 2px 5px !important;
+            border-radius: 4px !important;
+            margin-top: -5px !important;
+        }
+        .btn-eliminar > div.stButton > button:hover {
+            background-color: #cc3333 !important;
+            color: #ffffff !important;
+        }
+
         .btn-logout > div.stButton > button { background-color: #d32f2f !important; color: white !important; }
         </style>
     """, unsafe_allow_html=True)
 
     st.markdown('<div class="main-header">🌱 AGROCAMPO</div>', unsafe_allow_html=True)
-    busqueda = st.text_input("🔍 Buscar publicaciones, productos o amigos...", placeholder="Ej. Maíz, Lara, Fertilizante...", key="barra_busqueda_global")
+    
+    busqueda = st.text_input("🔍 Buscar publicaciones...", placeholder="Buscar...", key="barra_busqueda_global")
 
-    # BARRA DE MENÚ HORIZONTAL CORREGIDA
+    # BARRA DE MENÚ HORIZONTAL
     st.markdown('<div class="menu-horizontal-container">', unsafe_allow_html=True)
     cols_nav = st.columns(4)
     secciones = ["Novedades", "Market", "AgroIA", "Perfil"]
@@ -267,34 +295,54 @@ def render_dashboard():
     if st.session_state.pantalla_actual == "Novedades":
         st.markdown("<h4 style='color:#1E3D14;'>Publicaciones de la Comunidad</h4>", unsafe_allow_html=True)
         
-        # NUEVO AJUSTE: Expansor con signo de más para crear publicaciones (Texto y Foto)
         with st.expander("➕ Crear Publicación", expanded=False):
             nuevo_texto = st.text_area("¿Qué está pasando en tu cultivo?", placeholder="Escribe aquí tu estado...", key="txt_nueva_pub")
             nueva_foto = st.file_uploader("Añadir foto (opcional)", type=["png", "jpg", "jpeg"], key="img_nueva_pub")
             
-            # Botón verde con letras blancas para enviar
             if st.button("Publicar", type="primary", use_container_width=True, key="btn_guardar_pub"):
                 if nuevo_texto.strip() or nueva_foto is not None:
                     st.session_state.db_publicaciones.insert(0, {
-                        "id": len(st.session_state.db_publicaciones) + 1,
+                        "id": random.randint(100, 99999), # ID único aleatorio
                         "autor": st.session_state.usuario_actual,
                         "contenido": nuevo_texto,
                         "imagen": nueva_foto
                     })
                     st.success("¡Publicado con éxito!")
+                    st.session_state.pantalla_actual = "Novedades"
                     st.rerun()
 
-        # Listado de publicaciones impresas
-        for post in st.session_state.db_publicaciones:
-            st.markdown(f"""
-                <div class="agro-card">
-                    <div style="font-weight:bold; color:#1E3D14;">👤 {post['autor']}</div>
-                    <p style="margin: 8px 0; font-weight: normal;">{post['contenido']}</p>
-                </div>
-            """, unsafe_allow_html=True)
-            # Mostrar la foto si la tiene
-            if post.get("imagen") is not None:
-                st.image(post["imagen"], use_column_width=True)
+        # LÓGICA DE BÚSQUEDA FILTRADA
+        publicaciones_filtradas = st.session_state.db_publicaciones
+        if busqueda.strip():
+            publicaciones_filtradas = [
+                p for p in st.session_state.db_publicaciones 
+                if busqueda.lower() in p["contenido"].lower() or busqueda.lower() in p["autor"].lower()
+            ]
+
+        if not publicaciones_filtradas:
+            st.info("❌ No encontrado")
+        else:
+            for post in publicaciones_filtradas:
+                st.markdown(f"""
+                    <div class="agro-card">
+                        <div style="font-weight:bold; color:#1E3D14;">👤 {post['autor']}</div>
+                        <p style="margin: 8px 0; font-weight: normal;">{post['contenido']}</p>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                if post.get("imagen") is not None:
+                    st.image(post["imagen"], use_column_width=True)
+                
+                # AJUSTE: Si el usuario actual es el dueño, se le renderiza el botón de eliminar abajo de la card
+                if post["autor"] == st.session_state.usuario_actual:
+                    st.markdown('<div class="btn-eliminar">', unsafe_allow_html=True)
+                    if st.button("🗑️ Eliminar mi publicación", key=f"del_{post['id']}", use_container_width=False):
+                        st.session_state.db_publicaciones = [p for p in st.session_state.db_publicaciones if p["id"] != post["id"]]
+                        st.toast("Publicación eliminada")
+                        st.rerun()
+                    st.markdown('</div>', unsafe_allow_html=True)
+                
+                st.markdown("<div style='margin-bottom:15px;'></div>", unsafe_allow_html=True)
 
     elif st.session_state.pantalla_actual == "Market":
         for item in st.session_state.db_market:
