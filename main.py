@@ -67,7 +67,7 @@ def responder_ia(mensaje_usuario):
         return random.choice(respuestas_general)
 
 # ==========================================
-# 🚪 PANEL DE AUTENTICACIÓN (LOGIN, REGISTRO, RECUPERACIÓN)
+# 🚪 PANEL DE AUTENTICACIÓN (CORREGIDO)
 # ==========================================
 def render_autentizacion():
     st.markdown("""
@@ -89,7 +89,7 @@ def render_autentizacion():
         }
         h1, h2, h3, p, div[data-testid="stWidgetLabel"] p { color: #ffffff !important; font-weight: 500 !important; }
         
-        /* Botón de acción principal verde */
+        /* Botón principal verde */
         button[kind="primary"] {
             background-color: #4CAF50 !important;
             color: white !important;
@@ -99,7 +99,7 @@ def render_autentizacion():
             border: none !important;
         }
         
-        /* Enlaces secundarios transparentes/blancos */
+        /* Botones secundarios transparentes/blancos estilo enlace */
         div.stButton > button[kind="secondary"] {
             background: transparent !important;
             color: #a3cfbb !important;
@@ -129,11 +129,13 @@ def render_autentizacion():
             
         col1, col2 = st.columns(2)
         with col1:
-            if st.button("Crear cuenta", kind="secondary", key="goto_register"):
+            # CORREGIDO: Se cambió 'kind' por 'type'
+            if st.button("Crear cuenta", type="secondary", key="goto_register"):
                 st.session_state.pantalla_auth = "registro"
                 st.rerun()
         with col2:
-            if st.button("¿Olvidó su clave?", kind="secondary", key="goto_recovery"):
+            # CORREGIDO: Se cambió 'kind' por 'type'
+            if st.button("¿Olvidó su clave?", type="secondary", key="goto_recovery"):
                 st.session_state.pantalla_auth = "recuperacion"
                 st.rerun()
 
@@ -156,7 +158,8 @@ def render_autentizacion():
             else:
                 st.error("Por favor rellene los campos obligatorios.")
                 
-        if st.button("Volver al Inicio de Sesión", kind="secondary", key="back_to_login_reg"):
+        # CORREGIDO: Se cambió 'kind' por 'type'
+        if st.button("Volver al Inicio de Sesión", type="secondary", key="back_to_login_reg"):
             st.session_state.pantalla_auth = "login"
             st.rerun()
 
@@ -172,7 +175,8 @@ def render_autentizacion():
             else:
                 st.error("Por favor introduzca su usuario.")
                 
-        if st.button("Volver al Inicio de Sesión", kind="secondary", key="back_to_login_rec"):
+        # CORREGIDO: Se cambió 'kind' por 'type'
+        if st.button("Volver al Inicio de Sesión", type="secondary", key="back_to_login_rec"):
             st.session_state.pantalla_auth = "login"
             st.rerun()
 
