@@ -89,30 +89,32 @@ if "pub_count" not in st.session_state:
     st.session_state.pub_count = 0
 if "mkt_count" not in st.session_state:
     st.session_state.mkt_count = 0
+if "chat_count" not in st.session_state:
+    st.session_state.chat_count = 0  # Contador para limpiar la barra de la IA
 
 # Historial del Chat de la IA
 if "historial_ia" not in st.session_state:
     st.session_state.historial_ia = [
-        {"role": "assistant", "content": "¡Saludos! Soy AgroIA, su asesor de ingeniería agronómica. Estoy listo para proveer diagnósticos técnicos, planes de dosificación de fertilizantes e intervenciones de manejo fitosanitario de precisión. ¿Qué escenario evaluamos hoy?"}
+        {"role": "assistant", "content": "¡Saludos! Soy AgroIA, su asesor de ingeniería agronómica. Estoy listo para proveer diagnósticos técnicos, planes de dosificación de fertilizantes e intervenciones de manejo fitosanitario de precisión. ¿Qué escenario evaluamos hoy?", "imagen": None}
     ]
 
 # Estructuras temporales en memoria para Market
 if "db_market" not in st.session_state:
     st.session_state.db_market = [
-        {"id": 1, "autor": "Euclimar García", "titulo": "Sacos de Fertilizante NPK", "precio": "25.00", "ubicacion": "Lara, Venezuela", "descripcion": "Alta calidad para fases de crecimiento foliar.", "archivo": None, "tipo_archivo": None}
+        {"id": 1, "autor": "Euclimar García", "titulo": "Sacos de Fertilizante NPK", "precio": "25.00", "ubicacion": "Lara, Venezuela", "descripcion": "Alta calidad para fases de crecimiento foliar.", "imagen": None}
     ]
 
 # LÓGICA DE RESPUESTAS AGROIA
 def responder_ia_agronomo(mensaje_usuario, tiene_archivo=False):
     msg = mensaje_usuario.lower()
     if tiene_archivo:
-        return "🔬 *Análisis Técnico de Registro Multimedia (AgroIA):* Evaluando patrones sintomatológicos en el material. Se observa necrosis marginal foliar compatible con deficiencia crítica de Potasio ($K$) o estrés por salinidad. Se sugiere análisis de tejido foliar y conductividad eléctrica en suelo."
+        return "🔬 *Análisis Técnico de Registro Multimedia (AgroIA):* Evaluando patrones sintomatológicos en el material visual suministrado. Se observa una carga potencial de maleza densa o anomalías foliares. Se recomienda un control cultural/mecánico inicial previo al trasplante y el monitoreo de plagas asociadas al monte."
     
     if "fertilidad" in msg or "fertilizante" in msg or "abono" in msg or "npk" in msg or "urea" in msg:
         return "🚜 *Dictamen Agronómico (Fertilidad):* Para optimizar el rendimiento por hectárea, suspenda aplicaciones genéricas. Aplique un plan balanceado basado en análisis de suelo previo. En fase vegetativa agresiva, se prescribe dosificación fraccionada de Nitrógeno (Urea al 46%) combinada con enmiendas de Fósforo ($P_2O_5$) de alta solubilidad si el pH está fuera del rango balanceado (6.0 - 6.5)."
     
-    if "plaga" in msg or "insecto" in msg or "enfermedad" in msg or "hongo" in msg:
-        return "🛡️ *Estrategia Fitosanitaria (Control Técnico):* Determine primero el Umbral de Daño Económico (UDE). Ante la presencia de vectores fúngicos severos, considere el uso técnico de fungicidas sistémicos (triazoles o estrobirulinas) bajo rotación estricta de mecanismos de acción para prevenir resistencia biológica."
+    if "plaga" in msg or "insecto" in msg or "enfermedad" in msg or "hongo" in msg or "monte" in msg or "maleza" in msg:
+        return "🛡️ *Estrategia Fitosanitaria (Manejo de Malezas y Suelo):* Ante la presencia de alta densidad de maleza ('mucho monte') previo a la siembra de pimentón, se sugiere realizar un desmalezado mecánico o rastreo para incorporar la materia orgánica, o evaluar una aplicación localizada de herbicida si el umbral lo requiere. Esto evitará la competencia por nutrientes y luz con las plántulas."
         
     return "📊 *Consulta Registrada por Ingeniería:* Para estructurar la prescripción técnica idónea, provea los datos del cultivo, etapa fenológica exacta, densidad de siembra y tipo de suelo predominante."
 
@@ -336,10 +338,10 @@ def render_dashboard():
                     if post["autor"] == st.session_state.usuario_actual and post["id"] > 0:
                         with st.popover("···", help="Opciones de publicación"):
                             st.markdown("<p style='font-weight:bold; margin-bottom:2px;'>📝 Editar publicación</p>", unsafe_allow_html=True)
-                            texto_editado = st.text_area("Modificar contenido:", value=post['contenido'], key=f"edit_txt_{post['id']}")
+                            texto_editated = st.text_area("Modificar contenido:", value=post['contenido'], key=f"edit_txt_{post['id']}")
                             
                             if st.button("Guardar cambios", key=f"save_{post['id']}", use_container_width=True):
-                                if editar_publicacion_db(post['id'], texto_editado):
+                                if editar_publicacion_db(post['id'], texto_editated):
                                     st.success("¡Actualizado en MySQL!")
                                     st.rerun()
                                 
@@ -358,15 +360,17 @@ def render_dashboard():
                 
                 st.markdown("<div style='margin-bottom:20px;'></div>", unsafe_allow_html=True)
 
-    # --- MARKET (¡LÍNEA 362 CORREGIDA AQUÍ!) ---
+    # --- MARKET ---
     elif st.session_state.pantalla_actual == "Market":
         st.markdown("<h4 style='color:#1E3D14;'>🛒 Mercado de Productos e Insumos</h4>", unsafe_allow_html=True)
         
         with st.expander("➕ Publicar Insumo / Producto Agrícola", expanded=False):
             prod_titulo = st.text_input("Nombre del Producto / Insumo:", placeholder="Ej. Pimentón fresco, Urea, Motocultor...", key=f"mk_tit_{st.session_state.mkt_count}")
-            prod_precio = st.text_input("Precio ($):", placeholder="Ej. 15.00", key=f"mk_pre_{st.session_state.mkt_count}")
+            prod_precio = st.text_input("Precio ($):", placeholder="Ej. 25.00", key=f"mk_pre_{st.session_state.mkt_count}")
             prod_ubicacion = st.text_input("Dirección / Estado de venta:", value=st.session_state.ubicacion_actual, key=f"mk_ub_{st.session_state.mkt_count}")
             prod_descripcion = st.text_area("Descripción y características del producto:", placeholder="Detalla las condiciones actuales...", key=f"mk_des_{st.session_state.mkt_count}")
+            
+            prod_imagen = st.file_uploader("Subir foto del producto:", type=["png", "jpg", "jpeg"], key=f"mk_img_{st.session_state.mkt_count}")
             
             if st.button("Publicar en Mercado", type="primary", use_container_width=True):
                 if prod_titulo.strip() and prod_precio.strip():
@@ -376,7 +380,8 @@ def render_dashboard():
                         "titulo": prod_titulo,
                         "precio": prod_precio,
                         "ubicacion": prod_ubicacion,
-                        "descripcion": prod_descripcion
+                        "descripcion": prod_descripcion,
+                        "imagen": prod_imagen
                     })
                     st.session_state.mkt_count += 1
                     st.success("¡Producto publicado con éxito!")
@@ -388,45 +393,82 @@ def render_dashboard():
 
         for item in market_filtrado:
             st.markdown(f"""
-                <div class="agro-card">
-                    <div style="font-size: 19px; font-weight: bold; color: #2e6d38;">📦 {item['titulo']}</div>
-                    <div style="font-size: 13px; color: #777777; margin-bottom: 6px;">👤 Vendedor: {item.get('autor', 'Anónimo')}</div>
+                <div class="agro-card" style="margin-bottom: 10px;">
+                    <div style="font-size: 19px; font-weight: bold; color: #2e6d38; margin-bottom: 4px;">📦 {item['titulo']}</div>
+                    <div style="font-size: 13px; color: #777777; margin-bottom: 6px;"><b>👤 Vendedor:</b> {item.get('autor', 'Anónimo')}</div>
                     <p style="margin: 4px 0;"><b>💰 Precio:</b> {item['precio']}$</p>
                     <p style="margin: 4px 0;"><b>📍 Ubicación:</b> {item.get('ubicacion', 'No especificada')}</p>
                     <p style="margin: 6px 0; font-size: 14px;">{item['descripcion']}</p>
                 </div>
             """, unsafe_allow_html=True)
             
+            if item.get("imagen") is not None:
+                st.image(item["imagen"], use_container_width=True)
+            
             if item.get("autor") == st.session_state.usuario_actual:
-                st.markdown('<div class="btn-eliminar">', unsafe_allow_html=True)
-                if st.button("🗑️ Retirar Producto", key=f"del_mk_{item['id']}"):
+                if st.button("🗑️ Retirar Producto", key=f"del_mk_{item['id']}", use_container_width=True):
                     st.session_state.db_market = [m for m in st.session_state.db_market if m["id"] != item["id"]]
                     st.toast("Producto retirado")
                     st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
-            st.markdown("<div style='margin-bottom:15px;'></div>", unsafe_allow_html=True)
+            st.markdown("<hr style='border-top:1px solid #ddd; margin:15px 0;'>", unsafe_allow_html=True)
 
-    # --- AGROIA ---
+    # --- AGROIA (CON COMPONENTE MULTIMEDIA Y VACIADO AUTOMÁTICO DE INPUT) ---
     elif st.session_state.pantalla_actual == "AgroIA":
-        st.markdown("<h4 style='color:#1E3D14;'>🔬 Consultoría de Ingeniería Agronómica de Precisión</h4>", unsafe_allow_html=True)
+        st.markdown("<h4 style='color:#1E3D14;'>🔬 Consultoría de Ingeniería Agronómica de Precision</h4>", unsafe_allow_html=True)
         
+        # Renderizado del historial de mensajes
         for chat in st.session_state.historial_ia:
             bg_color = "#e8f5e9" if chat["role"] == "assistant" else "#ffffff"
             st.markdown(f"""
-                <div class="chat-card" style="background-color: {bg_color};">
+                <div class="chat-card" style="background-color: {bg_color}; margin-bottom: 8px;">
                     <span style="font-weight: bold; color: #1E3D14;">{chat["role"].upper()}:</span><br>
                     <span style="font-weight: normal;">{chat["content"]}</span>
                 </div>
             """, unsafe_allow_html=True)
+            
+            # Si el mensaje incluye una imagen cargada, se muestra justo debajo en el historial
+            if chat.get("imagen") is not None:
+                st.image(chat["imagen"], caption="Archivo adjuntado a la consulta", width=250)
         
         st.markdown("<br>", unsafe_allow_html=True)
         
-        with st.form("chat_form"):
-            user_text = st.text_input("Describa las variables de manejo observadas para evaluar:")
+        # Formulario de consulta estructurado
+        with st.form("chat_form", clear_on_submit=False):
+            # Usando la clave dinámica key=f"..." basada en un contador limpiamos la barra tras presionar enviar
+            user_text = st.text_input(
+                "Describa las variables de manejo observadas para evaluar:", 
+                key=f"ia_input_text_{st.session_state.chat_count}"
+            )
+            
+            # Opción de agregar foto a la IA tal cual como en Gemini
+            foto_ia = st.file_uploader(
+                "📸 Adjuntar foto al asistente (Opcional):", 
+                type=["png", "jpg", "jpeg"], 
+                key=f"ia_input_file_{st.session_state.chat_count}"
+            )
+            
             if st.form_submit_button("Enviar a Diagnóstico Técnico"):
-                if user_text.strip():
-                    st.session_state.historial_ia.append({"role": "user", "content": user_text})
-                    st.session_state.historial_ia.append({"role": "assistant", "content": responder_ia_agronomo(user_text, False)})
+                if user_text.strip() or foto_ia is not None:
+                    # Guardamos el mensaje e imagen en el historial
+                    texto_usuario = user_text if user_text.strip() else "*(Envió una imagen para evaluación técnica)*"
+                    st.session_state.historial_ia.append({
+                        "role": "user", 
+                        "content": texto_usuario,
+                        "imagen": foto_ia
+                    })
+                    
+                    # Generamos la respuesta técnica evaluando si vino con archivo multimedia
+                    tiene_imagen = (foto_ia is not None)
+                    respuesta = responder_ia_agronomo(user_text, tiene_archivo=tiene_imagen)
+                    
+                    st.session_state.historial_ia.append({
+                        "role": "assistant", 
+                        "content": respuesta,
+                        "imagen": None
+                    })
+                    
+                    # Incrementamos el contador para obligar a Streamlit a renderizar los inputs completamente vacíos
+                    st.session_state.chat_count += 1
                     st.rerun()
 
     # --- CLIMA ---
