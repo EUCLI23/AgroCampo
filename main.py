@@ -255,11 +255,19 @@ def render_dashboard():
         .chat-card { border-radius: 14px; padding: 18px; border: 1px solid #EAEAEA; margin-bottom: 10px; }
         .chat-card p, .chat-card span, .chat-card b, .chat-card div { color: #111111 !important; font-size: 15px !important; }
         
-        /* Etiquetas de los Inputs globales */
-        div[data-testid="stWidgetLabel"] p { color: #1E3D14 !important; font-weight: bold !important; }
+        /* --- ARREGLO DE ENTRADAS DE TEXTO E INPUTS (CORRECCIÓN IMAGEN 9) --- */
+        /* Forzamos que las etiquetas exteriores sean verde oscuro nítido y NUNCA blancas */
+        div[data-testid="stWidgetLabel"] p, label p { 
+            color: #1E3D14 !important; 
+            font-weight: bold !important; 
+        }
         
-        div[data-testid="stTextInput"] input, div[data-testid="stTextArea"] textarea, div[data-testid="stFileUploader"] section {
-            background-color: #ffffff !important; color: #000000 !important; border: 1px solid #cccccc !important; border-radius: 8px !important;
+        /* Forzamos que el texto digitado dentro de los inputs/textarea sea negro intenso */
+        div[data-testid="stTextInput"] input, div[data-testid="stTextArea"] textarea {
+            background-color: #ffffff !important; 
+            color: #000000 !important; 
+            border: 1px solid #cccccc !important; 
+            border-radius: 8px !important;
         }
         
         /* --- ESTILIZACIÓN DE LOS CUADROS DESPLEGABLES (EXPANDERS VERDES) --- */
@@ -287,11 +295,6 @@ def render_dashboard():
         div[data-testid="stFileUploader"] span {
             color: #000000 !important;
             font-weight: 600 !important;
-        }
-        
-        div[data-testid="stFileUploader"] label p {
-            color: #1E3D14 !important;
-            font-weight: bold !important;
         }
 
         /* Botón interno que dice SUBIR */
@@ -379,7 +382,6 @@ def render_dashboard():
                         st.success("¡Publicado y guardado en MySQL con éxito!")
                         st.rerun()
                     else:
-                        # Si falla MySQL, igual simula la subida en la lista para que la puedas ver en la pantalla
                         st.session_state.pub_count += 1
                         st.toast("Guardado en modo local temporal.")
                         st.rerun()
