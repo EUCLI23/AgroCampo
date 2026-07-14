@@ -14,6 +14,64 @@ def obtener_conexion():
         database="bd_agrocampo"
     )
 
+# --- FUNCIONES DE BASE DE DATOS PARA PUBLICACIONES ---
+def guardar_publicacion_db(autor, contenido, ubicacion):
+    try:
+        conn = obtener_conexion()
+        cursor = conn.cursor()
+        query = "INSERT INTO publicaciones (autor, contenido, ubicacion) VALUES (%s, %s, %s)"
+        cursor.execute(query, (autor, contenido, ubicacion))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return True
+    except Exception as e:
+        st.error(f"Error al guardar en la base de datos: {e}")
+        return False
+
+def listar_publicaciones_db():
+    try:
+        conn = obtener_conexion()
+        cursor = conn.cursor(dictionary=True)
+        # Trae las publicaciones ordenadas desde la más reciente
+        cursor.execute("SELECT * FROM publicaciones ORDER BY id DESC")
+        resultados = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return resultados
+    except Exception as e:
+        # Si falla la BD por ahora, devolvemos una lista vacía para que no se caiga la app
+        return []
+
+def editar_publicacion_db(id_pub, nuevo_contenido):
+    try:
+        conn = obtener_conexion()
+        cursor = conn.cursor()
+        query = "UPDATE publicaciones SET contenido = %s WHERE id = %s"
+        cursor.execute(query, (nuevo_contenido, id_pub))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return True
+    except Exception as e:
+        st.error(f"Error al editar: {e}")
+        return False
+
+def eliminar_publicacion_db(id_pub):
+    try:
+        conn = obtener_conexion()
+        cursor = conn.cursor()
+        query = "DELETE FROM publicaciones WHERE id = %s"
+        cursor.execute(query, (id_pub,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return True
+    except Exception as e:
+        st.error(f"Error al eliminar: {e}")
+        return False
+
+
 # --- CONTROL DE SESIÓN ---
 if "autenticado" not in st.session_state:
     st.session_state.autenticado = False
@@ -40,12 +98,7 @@ if "historial_ia" not in st.session_state:
         {"role": "assistant", "content": "¡Saludos! Soy AgroIA, su asesor de ingeniería agronómica. Estoy listo para proveer diagnósticos técnicos, planes de dosificación de fertilizantes e intervenciones de manejo fitosanitario de precisión. ¿Qué escenario evaluamos hoy?"}
     ]
 
-# Estructuras temporales en memoria (Publicaciones globales visibles por todos)
-if "db_publicaciones" not in st.session_state:
-    st.session_state.db_publicaciones = [
-        {"id": 1, "autor": "Euclimar García", "contenido": "Iniciando la siembra de maíz en la zona alta.", "archivo": None, "tipo_archivo": None, "ubicacion": "Lara, Venezuela"},
-        {"id": 2, "autor": "Jetsiber Simancas", "contenido": "Evaluando umbral de daño económico para control químico de insectos.", "archivo": None, "tipo_archivo": None, "ubicacion": ""}
-    ]
+# Estructuras temporales en memoria para Market (Se mantiene igual)
 if "db_market" not in st.session_state:
     st.session_state.db_market = [
         {"id": 1, "autor": "Euclimar García", "titulo": "Sacos de Fertilizante NPK", "precio": "25.00", "ubicacion": "Lara, Venezuela", "descripcion": "Alta calidad para fases de crecimiento foliar.", "archivo": None, "tipo_archivo": None}
@@ -171,7 +224,7 @@ def render_autentizacion():
             st.success("Código enviado.")
 
 # ==========================================
-# 🌱 INTERFAZ PRINCIPAL (CORREGIDA Y COMPLETA)
+# 🌱 INTERFAZ PRINCIPAL
 # ==========================================
 def render_dashboard():
     st.markdown("""
@@ -183,12 +236,10 @@ def render_dashboard():
         .agro-card { background-color: #FFFFFF; border-radius: 14px; padding: 18px; border: 1px solid #EAEAEA; margin-bottom: 5px; position: relative; }
         .agro-card p, .agro-card div { color: #333333 !important; font-size: 15px; }
         
-        /* Cajas de texto blancas del interior */
         div[data-testid="stTextInput"] input, div[data-testid="stTextArea"] textarea, div[data-testid="stFileUploader"] section {
             background-color: #ffffff !important; color: #000000 !important; border: 1px solid #cccccc !important; border-radius: 8px !important;
         }
         
-        /* Menú horizontal de 5 columnas */
         .menu-horizontal-container { display: flex !important; flex-direction: row !important; justify-content: space-between !important; width: 100% !important; gap: 4px !important; margin-bottom: 15px !important; }
         .menu-horizontal-container div.element-container, .menu-horizontal-container div.stButton { flex: 1 1 0% !important; width: auto !important; margin: 0 !important; }
         
@@ -197,7 +248,6 @@ def render_dashboard():
         }
         div.stButton > button:hover { background-color: #1e4d2b !important; }
         
-        /* Botón Popover de Opciones (...) alineado a la derecha */
         div[data-testid="stPopover"] > button {
             background-color: transparent !important;
             color: #777777 !important;
@@ -214,10 +264,8 @@ def render_dashboard():
 
     st.markdown('<div class="main-header">🌱 AGROCAMPO</div>', unsafe_allow_html=True)
     
-    # Campo de búsqueda limpio sin etiquetas superiores duplicadas
     busqueda = st.text_input("", placeholder="🔍 Buscar...", key="barra_busqueda_global")
 
-    # BARRA DE MENÚ HORIZONTAL COMPLETO (Verde con letras blancas nativo de la app)
     st.markdown('<div class="menu-horizontal-container">', unsafe_allow_html=True)
     cols_nav = st.columns(5)
     secciones = ["Novedades", "Market", "AgroIA", "Clima", "Perfil"]
@@ -234,46 +282,42 @@ def render_dashboard():
 
     st.markdown("<hr style='border:0; border-top: 1px solid #ddd; margin: 10px 0;'>", unsafe_allow_html=True)
 
-    # --- NOVEDADES ---
+    # --- NOVEDADES (CONEXIÓN MYSQL COMPLETA) ---
     if st.session_state.pantalla_actual == "Novedades":
         st.markdown("<h4 style='color:#1E3D14;'>Publicaciones de la Comunidad</h4>", unsafe_allow_html=True)
         
         with st.expander("➕ Crear Publicación", expanded=False):
             nuevo_texto = st.text_area("¿Qué está pasando en tu cultivo?", placeholder="Escribe aquí tu estado...", key=f"txt_pub_{st.session_state.pub_count}")
-            nuevo_archivo = st.file_uploader("Cargar foto/video", type=["png", "jpg", "jpeg", "mp4", "mov"], key=f"file_pub_{st.session_state.pub_count}")
             
-            # AGREGADO: Checkbox y campo opcional para la ubicación geográfica
             add_ubi = st.checkbox("📍 Agregar ubicación geográfica", key=f"chk_ubi_{st.session_state.pub_count}")
             pub_ubicacion = ""
             if add_ubi:
                 pub_ubicacion = st.text_input("Ubicación del cultivo:", placeholder="Ej. El Tostao, Barquisimeto", key=f"inp_ubi_{st.session_state.pub_count}")
             
             if st.button("Publicar", type="primary", use_container_width=True):
-                if nuevo_texto.strip() or nuevo_archivo is not None:
-                    tipo = None
-                    if nuevo_archivo is not None:
-                        tipo = "video" if nuevo_archivo.name.lower().endswith(('.mp4', '.mov')) else "imagen"
-                        
-                    st.session_state.db_publicaciones.insert(0, {
-                        "id": random.randint(100, 99999),
-                        "autor": st.session_state.usuario_actual,
-                        "contenido": nuevo_texto,
-                        "archivo": nuevo_archivo,
-                        "tipo_archivo": tipo,
-                        "ubicacion": pub_ubicacion  # Guardamos la ubicación en la estructura
-                    })
-                    st.session_state.pub_count += 1
-                    st.success("¡Publicado con éxito!")
-                    st.rerun()
+                if nuevo_texto.strip():
+                    # GUARDADO EN BASE DE DATOS LOCAL
+                    exito = guardar_publicacion_db(st.session_state.usuario_actual, nuevo_texto, pub_ubicacion)
+                    if exito:
+                        st.session_state.pub_count += 1
+                        st.success("¡Publicado y guardado en MySQL con éxito!")
+                        st.rerun()
 
-        publicaciones_filtradas = st.session_state.db_publicaciones
+        # LECTURA DESDE LA BASE DE DATOS
+        db_publicaciones = listar_publicaciones_db()
+        
+        # Si la base de datos está vacía, mostramos por cortesía las de tus compañeras para que no se vea desierto
+        if not db_publicaciones:
+            db_publicaciones = [
+                {"id": -1, "autor": "Euclimar García", "contenido": "Iniciando la siembra de maíz en la zona alta.", "ubicacion": "Lara, Venezuela"},
+                {"id": -2, "autor": "Jetsiber Simancas", "contenido": "Evaluando umbral de daño económico para control químico de insectos.", "ubicacion": ""}
+            ]
+
         if busqueda.strip():
-            publicaciones_filtradas = [p for p in st.session_state.db_publicaciones if busqueda.lower() in p["contenido"].lower() or busqueda.lower() in p["autor"].lower()]
+            db_publicaciones = [p for p in db_publicaciones if busqueda.lower() in p["contenido"].lower() or busqueda.lower() in p["autor"].lower()]
 
-        for post in publicaciones_filtradas:
-            # Iniciamos el contenedor de la tarjeta
+        for post in db_publicaciones:
             with st.container():
-                # Creamos el encabezado con dos columnas: autor y menú desplegable (...)
                 col_autor, col_menu = st.columns([0.85, 0.15])
                 
                 with col_autor:
@@ -286,37 +330,29 @@ def render_dashboard():
                         st.markdown(f'<div style="font-weight:bold; color:#1E3D14; margin-bottom: 8px;">👤 {post["autor"]}</div>', unsafe_allow_html=True)
                 
                 with col_menu:
-                    # AGREGADO: Menú de tres puntitos flotantes si el post pertenece al usuario actual
-                    if post["autor"] == st.session_state.usuario_actual:
+                    # Acciones permitidas solo si eres el autor y no es un post estático por defecto
+                    if post["autor"] == st.session_state.usuario_actual and post["id"] > 0:
                         with st.popover("···", help="Opciones de publicación"):
                             st.markdown("<p style='font-weight:bold; margin-bottom:2px;'>📝 Editar publicación</p>", unsafe_allow_html=True)
                             texto_editado = st.text_area("Modificar contenido:", value=post['contenido'], key=f"edit_txt_{post['id']}")
                             
                             if st.button("Guardar cambios", key=f"save_{post['id']}", use_container_width=True):
-                                post['contenido'] = texto_editado
-                                st.success("¡Modificado!")
-                                st.rerun()
+                                if editar_publicacion_db(post['id'], texto_editado):
+                                    st.success("¡Actualizado en MySQL!")
+                                    st.rerun()
                                 
                             st.markdown("<hr style='margin:10px 0;'>", unsafe_allow_html=True)
                             
                             if st.button("🗑️ Eliminar publicación", key=f"del_{post['id']}", type="primary", use_container_width=True):
-                                st.session_state.db_publicaciones = [p for p in st.session_state.db_publicaciones if p["id"] != post["id"]]
-                                st.toast("Publicación eliminada")
-                                st.rerun()
+                                if eliminar_publicacion_db(post['id']):
+                                    st.toast("Publicación eliminada de la BD")
+                                    st.rerun()
 
-                # Contenido del post renderizado abajo de los títulos
                 st.markdown(f"""
                     <div class="agro-card" style="margin-top:-10px;">
                         <p style="margin: 0; font-weight: normal;">{post['contenido']}</p>
                     </div>
                 """, unsafe_allow_html=True)
-                
-                # Renderizado condicional si es imagen o video corto
-                if post.get("archivo") is not None:
-                    if post.get("tipo_archivo") == "video":
-                        st.video(post["archivo"])
-                    else:
-                        st.image(post["archivo"], use_column_width=True)
                 
                 st.markdown("<div style='margin-bottom:20px;'></div>", unsafe_allow_html=True)
 
@@ -329,23 +365,16 @@ def render_dashboard():
             prod_precio = st.text_input("Precio ($):", placeholder="Ej. 15.00", key=f"mk_pre_{st.session_state.mkt_count}")
             prod_ubicacion = st.text_input("Dirección / Estado de venta:", value=st.session_state.ubicacion_actual, key=f"mk_ub_{st.session_state.mkt_count}")
             prod_descripcion = st.text_area("Descripción y características del producto:", placeholder="Detalla las condiciones actuales...", key=f"mk_des_{st.session_state.mkt_count}")
-            prod_archivo = st.file_uploader("Cargar foto/video del producto", type=["png", "jpg", "jpeg", "mp4", "mov"], key=f"mk_fot_{st.session_state.mkt_count}")
             
             if st.button("Publicar en Mercado", type="primary", use_container_width=True):
                 if prod_titulo.strip() and prod_precio.strip():
-                    tipo = None
-                    if prod_archivo is not None:
-                        tipo = "video" if prod_archivo.name.lower().endswith(('.mp4', '.mov')) else "imagen"
-                        
                     st.session_state.db_market.insert(0, {
                         "id": random.randint(100, 99999),
                         "autor": st.session_state.usuario_actual,
                         "titulo": prod_titulo,
                         "precio": prod_precio,
                         "ubicacion": prod_ubicacion,
-                        "descripcion": prod_descripcion,
-                        "archivo": prod_archivo,
-                        "tipo_archivo": tipo
+                        "descripcion": prod_descripcion
                     })
                     st.session_state.mkt_count += 1
                     st.success("¡Producto publicado con éxito!")
@@ -366,12 +395,6 @@ def render_dashboard():
                 </div>
             """, unsafe_allow_html=True)
             
-            if item.get("archivo") is not None:
-                if item.get("tipo_archivo") == "video":
-                    st.video(item["archivo"])
-                else:
-                    st.image(item["archivo"], use_column_width=True)
-            
             if item.get("autor") == st.session_state.usuario_actual:
                 st.markdown('<div class="btn-eliminar">', unsafe_allow_html=True)
                 if st.button("🗑️ Retirar Producto", key=f"del_mk_{item['id']}"):
@@ -388,13 +411,12 @@ def render_dashboard():
             color = "#e8f5e9" if chat["role"] == "assistant" else "#ffffff"
             st.markdown(f'<div class="agro-card" style="background-color:{color};"><b>{chat["role"].upper()}:</b><br>{chat["content"]}</div>', unsafe_allow_html=True)
         
-        archivo_analizar = st.file_uploader("Cargar foto/video sintomatológico para evaluación:", type=["png", "jpg", "jpeg", "mp4"], key="ia_file_input")
         with st.form("chat_form"):
             user_text = st.text_input("Describa las variables de manejo observadas:")
             if st.form_submit_button("Enviar a Diagnóstico Técnico"):
-                if user_text.strip() or archivo_analizar is not None:
+                if user_text.strip():
                     st.session_state.historial_ia.append({"role": "user", "content": user_text})
-                    st.session_state.historial_ia.append({"role": "assistant", "content": responder_ia_agronomo(user_text, archivo_analizar is not None)})
+                    st.session_state.historial_ia.append({"role": "assistant", "content": responder_ia_agronomo(user_text, False)})
                     st.rerun()
 
     # --- CLIMA ---
@@ -408,7 +430,6 @@ def render_dashboard():
                 <p style="margin:4px 0;"><b>💧 Humedad Relativa:</b> 74%</p>
                 <p style="margin:4px 0;"><b>💨 Velocidad del Viento:</b> 14 km/h NNE</p>
                 <p style="margin:4px 0;"><b>🌧️ Probabilidad de Precipitación:</b> 40%</p>
-                <p style="margin:4px 0; font-size:13px; color:#555; margin-top:8px;"><i>*Reporte técnico meteorológico optimizado para planificaciones de riego y aplicaciones foliares.</i></p>
             </div>
         """, unsafe_allow_html=True)
 
