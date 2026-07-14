@@ -39,7 +39,6 @@ def listar_publicaciones_db():
         conn.close()
         return resultados
     except Exception as e:
-        # Respaldo: Si MySQL está apagado, devuelve una lista vacía para no romper la interfaz
         return []
 
 def editar_publicacion_db(id_pub, nuevo_contenido):
@@ -75,7 +74,6 @@ def eliminar_publicacion_db(id_pub):
 if "autenticado" not in st.session_state:
     st.session_state.autenticado = False
 
-# Valores iniciales por defecto (se sobrescribirán al registrarse o iniciar sesión)
 if "usuario_actual" not in st.session_state:
     st.session_state.usuario_actual = "Gabriel Peraza"
 if "username_actual" not in st.session_state:
@@ -88,7 +86,6 @@ if "pantalla_actual" not in st.session_state:
 if "pantalla_auth" not in st.session_state:
     st.session_state.pantalla_auth = "login"
 
-# Claves para limpiar los inputs tras publicar
 if "pub_count" not in st.session_state:
     st.session_state.pub_count = 0
 if "mkt_count" not in st.session_state:
@@ -96,30 +93,24 @@ if "mkt_count" not in st.session_state:
 if "chat_count" not in st.session_state:
     st.session_state.chat_count = 0  
 
-# Historial del Chat de la IA
 if "historial_ia" not in st.session_state:
     st.session_state.historial_ia = [
         {"role": "assistant", "content": "¡Saludos! Soy AgroIA, su asesor de ingeniería agronómica. Estoy listo para proveer diagnósticos técnicos, planes de dosificación de fertilizantes e intervenciones de manejo fitosanitario de precisión. ¿Qué escenario evaluamos hoy?", "imagen": None}
     ]
 
-# Estructuras temporales en memoria para Market
 if "db_market" not in st.session_state:
     st.session_state.db_market = [
         {"id": 1, "autor": "Euclimar García", "titulo": "Sacos de Fertilizante NPK", "precio": "25.00", "ubicacion": "Lara, Venezuela", "descripcion": "Alta calidad para fases de crecimiento foliar.", "imagen": None}
     ]
 
-# LÓGICA DE RESPUESTAS AGROIA
 def responder_ia_agronomo(mensaje_usuario, tiene_archivo=False):
     msg = mensaje_usuario.lower()
     if tiene_archivo:
         return "🔬 *Análisis Técnico de Registro Multimedia (AgroIA):* Evaluando patrones sintomatológicos en el material visual suministrado. Se observa una carga potencial de maleza densa o anomalías foliares. Se recomienda un control cultural/mecánico inicial previo al trasplante y el monitoreo de plagas asociadas al monte."
-    
     if "fertilidad" in msg or "fertilizante" in msg or "abono" in msg or "npk" in msg or "urea" in msg:
         return "🚜 *Dictamen Agronómico (Fertilidad):* Para optimizar el rendimiento por hectárea, suspenda aplicaciones genéricas. Aplique un plan balanceado basado en análisis de suelo previo. En fase vegetativa agresiva, se prescribe dosificación fraccionada de Nitrógeno (Urea al 46%) combinada con enmiendas de Fósforo ($P_2O_5$) de alta solubilidad si el pH está fuera del rango balanceado (6.0 - 6.5)."
-    
     if "plaga" in msg or "insecto" in msg or "enfermedad" in msg or "hongo" in msg or "monte" in msg or "maleza" in msg:
         return "🛡️ *Estrategia Fitosanitaria (Manejo de Malezas y Suelo):* Ante la presencia de alta densidad de maleza ('mucho monte') previo a la siembra de pimentón, se sugiere realizar un desmalezado mecánico o rastreo para incorporar la materia orgánica, o evaluar una aplicación localizada de herbicida si el umbral lo requiere. Esto evitará la competencia por nutrientes y luz con las plántulas."
-        
     return "📊 *Consulta Registrada por Ingeniería:* Para estructurar la prescripción técnica idónea, provea los datos del cultivo, etapa fenológica exacta, densidad de siembra y tipo de suelo predominante."
 
 # ==========================================
@@ -185,7 +176,6 @@ def render_autentizacion():
 
     if st.session_state.pantalla_auth == "login":
         st.markdown('<div style="text-align:center; font-size:32px; font-weight:bold; color:white; margin-bottom:20px;">🌱 AgroCampo</div>', unsafe_allow_html=True)
-        
         user_input = st.text_input("Usuario", placeholder="Ingrese usuario", key="login_user")
         pass_input = st.text_input("Contraseña", type="password", placeholder="Ingrese contraseña", key="login_pass")
         
@@ -217,15 +207,12 @@ def render_autentizacion():
         
         if st.button("REGISTRARSE", type="primary", use_container_width=True):
             if nombre_completo.strip() and user_reg.strip():
-                # ASIGNACIÓN DINÁMICA: Guardamos los datos de quien se está registrando realmente
                 st.session_state.usuario_actual = nombre_completo.strip()
                 st.session_state.username_actual = user_reg.strip()
-                
                 if region_reg.strip():
                     st.session_state.ubicacion_actual = region_reg.strip()
                 else:
                     st.session_state.ubicacion_actual = "No especificada"
-                
                 st.session_state.autenticado = True
                 st.success(f"¡Registro Exitoso! Bienvenido/a, {st.session_state.usuario_actual}")
                 st.rerun()
@@ -247,22 +234,19 @@ def render_dashboard():
         .block-container { max-width: 550px !important; padding: 1.5rem 1rem !important; }
         .main-header { font-size: 34px; font-weight: 900; color: #1E3D14 !important; text-align: center; margin-top: 55px !important; margin-bottom: 15px; }
         
-        /* Tarjeta general */
         .agro-card { background-color: #FFFFFF; border-radius: 14px; padding: 18px; border: 1px solid #EAEAEA; margin-bottom: 5px; position: relative; }
         .agro-card p, .agro-card div { color: #333333 !important; font-size: 15px; }
         
-        /* Contenedores de chat legibles */
         .chat-card { border-radius: 14px; padding: 18px; border: 1px solid #EAEAEA; margin-bottom: 10px; }
         .chat-card p, .chat-card span, .chat-card b, .chat-card div { color: #111111 !important; font-size: 15px !important; }
         
-        /* --- ARREGLO DE ENTRADAS DE TEXTO E INPUTS (CORRECCIÓN IMAGEN 9) --- */
-        /* Forzamos que las etiquetas exteriores sean verde oscuro nítido y NUNCA blancas */
+        /* Etiquetas exteriores en verde oscuro nítido */
         div[data-testid="stWidgetLabel"] p, label p { 
             color: #1E3D14 !important; 
             font-weight: bold !important; 
         }
         
-        /* Forzamos que el texto digitado dentro de los inputs/textarea sea negro intenso */
+        /* Texto digitado dentro de inputs y áreas de texto */
         div[data-testid="stTextInput"] input, div[data-testid="stTextArea"] textarea {
             background-color: #ffffff !important; 
             color: #000000 !important; 
@@ -270,7 +254,38 @@ def render_dashboard():
             border-radius: 8px !important;
         }
         
-        /* --- ESTILIZACIÓN DE LOS CUADROS DESPLEGABLES (EXPANDERS VERDES) --- */
+        /* --- 🛠️ CORRECCIÓN DEFINITIVA DE LA CAJA DE SUBIDA DE ARCHIVOS (IMAGEN 10) --- */
+        /* Forzamos que el fondo del contenedor del uploader sea blanco o gris muy claro */
+        div[data-testid="stFileUploader"] section {
+            background-color: #ffffff !important;
+            border: 1px dashed #2e6d38 !important;
+            border-radius: 10px !important;
+            padding: 15px !important;
+        }
+
+        /* Todos los textos internos del uploader en color negro nítido */
+        div[data-testid="stFileUploader"] section div[data-testid="stMarkdownContainer"] p,
+        div[data-testid="stFileUploader"] small,
+        div[data-testid="stFileUploader"] span {
+            color: #111111 !important;
+            font-weight: 500 !important;
+        }
+
+        /* Botón interno "Browse files" estilizado correctamente en verde sin textos rotos ni sobrepuestos */
+        div[data-testid="stFileUploader"] button {
+            background-color: #2e6d38 !important;
+            color: #ffffff !important;
+            border: 1px solid #1e4d2b !important;
+            border-radius: 8px !important;
+            font-weight: bold !important;
+            padding: 6px 14px !important;
+        }
+        div[data-testid="stFileUploader"] button:hover {
+            background-color: #1e4d2b !important;
+        }
+        /* -------------------------------------------------------------------------- */
+        
+        /* Expanders verdes */
         div[data-testid="stExpander"] details summary {
             background-color: #2e6d38 !important;
             border-radius: 8px !important;
@@ -287,35 +302,6 @@ def render_dashboard():
         div[data-testid="stExpander"] details summary svg {
             color: #ffffff !important;
             fill: #ffffff !important;
-        }
-
-        /* --- ARREGLO DE TEXTOS EN LOS CARGADORES DE ARCHIVOS --- */
-        div[data-testid="stFileUploader"] section div[data-testid="stMarkdownContainer"] p,
-        div[data-testid="stFileUploader"] small,
-        div[data-testid="stFileUploader"] span {
-            color: #000000 !important;
-            font-weight: 600 !important;
-        }
-
-        /* Botón interno que dice SUBIR */
-        div[data-testid="stFileUploader"] button {
-            background-color: #2e6d38 !important;
-            color: transparent !important;
-            border: 1px solid #1e4d2b !important;
-            border-radius: 8px !important;
-            font-weight: bold !important;
-            position: relative;
-        }
-        div[data-testid="stFileUploader"] button::after {
-            content: 'Subir';
-            color: #ffffff !important;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
-        div[data-testid="stFileUploader"] button:hover {
-            background-color: #1e4d2b !important;
         }
         
         .menu-horizontal-container { display: flex !important; flex-direction: row !important; justify-content: space-between !important; width: 100% !important; gap: 4px !important; margin-bottom: 15px !important; }
