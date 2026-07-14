@@ -241,14 +241,14 @@ def render_dashboard():
         .chat-card { border-radius: 14px; padding: 18px; border: 1px solid #EAEAEA; margin-bottom: 10px; }
         .chat-card p, .chat-card span, .chat-card b, .chat-card div { color: #111111 !important; font-size: 15px !important; }
         
-        /* Etiquetas de los Inputs */
+        /* Etiquetas de los Inputs globales (Como el "¿Qué está pasando en tu cultivo?") */
         div[data-testid="stWidgetLabel"] p { color: #1E3D14 !important; font-weight: bold !important; }
         
         div[data-testid="stTextInput"] input, div[data-testid="stTextArea"] textarea, div[data-testid="stFileUploader"] section {
             background-color: #ffffff !important; color: #000000 !important; border: 1px solid #cccccc !important; border-radius: 8px !important;
         }
         
-        /* --- ESTILIZACIÓN DE LOS CUADROS DESPLEGABLES (EXPANDERS NEGROS -> VERDES) --- */
+        /* --- ESTILIZACIÓN DE LOS CUADROS DESPLEGABLES (EXPANDERS VERDES) --- */
         div[data-testid="stExpander"] details summary {
             background-color: #2e6d38 !important;
             border-radius: 8px !important;
@@ -267,10 +267,25 @@ def render_dashboard():
             fill: #ffffff !important;
         }
 
-        /* --- ESTILIZACIÓN VERDE PARA LOS BOTONES DE CARGA (Que digan SUBIR) --- */
+        /* --- ARREGLO DE TEXTOS EN LOS CARGADORES DE ARCHIVOS (CORRECCIÓN IMAGEN 9) --- */
+        /* 1. Forzar color negro al texto de límite ("00MB per file...") */
+        div[data-testid="stFileUploader"] section div[data-testid="stMarkdownContainer"] p,
+        div[data-testid="stFileUploader"] small,
+        div[data-testid="stFileUploader"] span {
+            color: #000000 !important;
+            font-weight: 600 !important;
+        }
+        
+        /* 2. Forzar que la etiqueta superior ("Subir foto o video (Opcional):") sea negra/verde oscuro y no blanca */
+        div[data-testid="stFileUploader"] label p {
+            color: #1E3D14 !important;
+            font-weight: bold !important;
+        }
+
+        /* Botón interno que dice SUBIR */
         div[data-testid="stFileUploader"] button {
             background-color: #2e6d38 !important;
-            color: transparent !important; /* Oculta el texto original en inglés */
+            color: transparent !important; /* Oculta "Browse files" */
             border: 1px solid #1e4d2b !important;
             border-radius: 8px !important;
             font-weight: bold !important;
@@ -286,10 +301,6 @@ def render_dashboard():
         }
         div[data-testid="stFileUploader"] button:hover {
             background-color: #1e4d2b !important;
-        }
-        /* Eliminar u ocultar los textos pequeños nativos en inglés */
-        div[data-testid="stFileUploader"] data-testid {
-            color: #2e6d38 !important;
         }
         
         .menu-horizontal-container { display: flex !important; flex-direction: row !important; justify-content: space-between !important; width: 100% !important; gap: 4px !important; margin-bottom: 15px !important; }
@@ -341,7 +352,7 @@ def render_dashboard():
         with st.expander("➕ Crear Publicación", expanded=False):
             nuevo_texto = st.text_area("¿Qué está pasando en tu cultivo?", placeholder="Escribe aquí tu estado...", key=f"txt_pub_{st.session_state.pub_count}")
             
-            # --- SECCIÓN RECUPERADA: SUBIR FOTOS/VIDEOS EN NOVEDADES ---
+            # Cargador corregido con etiquetas en negro y verde oscuro
             pub_media = st.file_uploader("Subir foto o video (Opcional):", type=["png", "jpg", "jpeg", "mp4", "mov"], key=f"media_pub_{st.session_state.pub_count}")
             
             add_ubi = st.checkbox("📍 Agregar ubicación geográfica", key=f"chk_ubi_{st.session_state.pub_count}")
@@ -351,7 +362,6 @@ def render_dashboard():
             
             if st.button("Publicar", type="primary", use_container_width=True):
                 if nuevo_texto.strip() or pub_media is not None:
-                    # NOTA: Aunque suba la foto en UI, se envía el texto y ubicación a tu BD MySQL
                     exito = guardar_publicacion_db(st.session_state.usuario_actual, nuevo_texto, pub_ubicacion)
                     if exito:
                         st.session_state.pub_count += 1
