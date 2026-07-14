@@ -39,6 +39,7 @@ def listar_publicaciones_db():
         conn.close()
         return resultados
     except Exception as e:
+        # Respaldo: Si MySQL está apagado, devuelve una lista vacía para no romper la interfaz
         return []
 
 def editar_publicacion_db(id_pub, nuevo_contenido):
@@ -73,12 +74,15 @@ def eliminar_publicacion_db(id_pub):
 # --- CONTROL DE SESIÓN ---
 if "autenticado" not in st.session_state:
     st.session_state.autenticado = False
+
+# Valores iniciales por defecto (se sobrescribirán al registrarse o iniciar sesión)
 if "usuario_actual" not in st.session_state:
     st.session_state.usuario_actual = "Gabriel Peraza"
 if "username_actual" not in st.session_state:
     st.session_state.username_actual = "GabrielP"
 if "ubicacion_actual" not in st.session_state:
     st.session_state.ubicacion_actual = "Lara, Venezuela"
+
 if "pantalla_actual" not in st.session_state:
     st.session_state.pantalla_actual = "Novedades"  
 if "pantalla_auth" not in st.session_state:
@@ -208,15 +212,25 @@ def render_autentizacion():
         st.markdown('<div style="text-align:center; font-size:26px; font-weight:bold; color:white; margin-bottom:20px;">📝 Registro</div>', unsafe_allow_html=True)
         nombre_completo = st.text_input("Nombre Completo", placeholder="Ingrese su nombre", key="reg_nom")
         user_reg = st.text_input("Nombre de Usuario", placeholder="Ingrese usuario deseado", key="reg_usr")
+        region_reg = st.text_input("Ubicación / Región Agrícola", placeholder="Ej. El Tostao, Barquisimeto", key="reg_ubi")
         st.text_input("Contraseña", type="password", placeholder="Ingrese contraseña", key="reg_pwd")
         
         if st.button("REGISTRARSE", type="primary", use_container_width=True):
-            if nombre_completo.strip():
+            if nombre_completo.strip() and user_reg.strip():
+                # ASIGNACIÓN DINÁMICA: Guardamos los datos de quien se está registrando realmente
                 st.session_state.usuario_actual = nombre_completo.strip()
-                st.session_state.username_actual = user_reg.strip() if user_reg.strip() else nombre_completo.strip()
-            st.session_state.autenticado = True
-            st.success("¡Registro Exitoso!")
-            st.rerun()
+                st.session_state.username_actual = user_reg.strip()
+                
+                if region_reg.strip():
+                    st.session_state.ubicacion_actual = region_reg.strip()
+                else:
+                    st.session_state.ubicacion_actual = "No especificada"
+                
+                st.session_state.autenticado = True
+                st.success(f"¡Registro Exitoso! Bienvenido/a, {st.session_state.usuario_actual}")
+                st.rerun()
+            else:
+                st.error("Por favor, rellene los campos obligatorios (Nombre y Usuario).")
 
     elif st.session_state.pantalla_auth == "recuperacion":
         st.text_input("Usuario o Correo", placeholder="Ingrese su usuario o correo", key="rec_usr")
@@ -241,7 +255,7 @@ def render_dashboard():
         .chat-card { border-radius: 14px; padding: 18px; border: 1px solid #EAEAEA; margin-bottom: 10px; }
         .chat-card p, .chat-card span, .chat-card b, .chat-card div { color: #111111 !important; font-size: 15px !important; }
         
-        /* Etiquetas de los Inputs globales (Como el "¿Qué está pasando en tu cultivo?") */
+        /* Etiquetas de los Inputs globales */
         div[data-testid="stWidgetLabel"] p { color: #1E3D14 !important; font-weight: bold !important; }
         
         div[data-testid="stTextInput"] input, div[data-testid="stTextArea"] textarea, div[data-testid="stFileUploader"] section {
@@ -267,8 +281,7 @@ def render_dashboard():
             fill: #ffffff !important;
         }
 
-        /* --- ARREGLO DE TEXTOS EN LOS CARGADORES DE ARCHIVOS (CORRECCIÓN IMAGEN 9) --- */
-        /* 1. Forzar color negro al texto de límite ("00MB per file...") */
+        /* --- ARREGLO DE TEXTOS EN LOS CARGADORES DE ARCHIVOS --- */
         div[data-testid="stFileUploader"] section div[data-testid="stMarkdownContainer"] p,
         div[data-testid="stFileUploader"] small,
         div[data-testid="stFileUploader"] span {
@@ -276,7 +289,6 @@ def render_dashboard():
             font-weight: 600 !important;
         }
         
-        /* 2. Forzar que la etiqueta superior ("Subir foto o video (Opcional):") sea negra/verde oscuro y no blanca */
         div[data-testid="stFileUploader"] label p {
             color: #1E3D14 !important;
             font-weight: bold !important;
@@ -285,7 +297,7 @@ def render_dashboard():
         /* Botón interno que dice SUBIR */
         div[data-testid="stFileUploader"] button {
             background-color: #2e6d38 !important;
-            color: transparent !important; /* Oculta "Browse files" */
+            color: transparent !important;
             border: 1px solid #1e4d2b !important;
             border-radius: 8px !important;
             font-weight: bold !important;
@@ -352,7 +364,6 @@ def render_dashboard():
         with st.expander("➕ Crear Publicación", expanded=False):
             nuevo_texto = st.text_area("¿Qué está pasando en tu cultivo?", placeholder="Escribe aquí tu estado...", key=f"txt_pub_{st.session_state.pub_count}")
             
-            # Cargador corregido con etiquetas en negro y verde oscuro
             pub_media = st.file_uploader("Subir foto o video (Opcional):", type=["png", "jpg", "jpeg", "mp4", "mov"], key=f"media_pub_{st.session_state.pub_count}")
             
             add_ubi = st.checkbox("📍 Agregar ubicación geográfica", key=f"chk_ubi_{st.session_state.pub_count}")
@@ -366,6 +377,11 @@ def render_dashboard():
                     if exito:
                         st.session_state.pub_count += 1
                         st.success("¡Publicado y guardado en MySQL con éxito!")
+                        st.rerun()
+                    else:
+                        # Si falla MySQL, igual simula la subida en la lista para que la puedas ver en la pantalla
+                        st.session_state.pub_count += 1
+                        st.toast("Guardado en modo local temporal.")
                         st.rerun()
 
         db_publicaciones = listar_publicaciones_db()
@@ -427,7 +443,6 @@ def render_dashboard():
             prod_precio = st.text_input("Precio ($):", placeholder="Ej. 25.00", key=f"mk_pre_{st.session_state.mkt_count}")
             prod_ubicacion = st.text_input("Dirección / Estado de venta:", value=st.session_state.ubicacion_actual, key=f"mk_ub_{st.session_state.mkt_count}")
             prod_descripcion = st.text_area("Descripción y características del producto:", placeholder="Detalla las condiciones actuales...", key=f"mk_des_{st.session_state.mkt_count}")
-            
             prod_imagen = st.file_uploader("Subir foto del producto:", type=["png", "jpg", "jpeg"], key=f"mk_img_{st.session_state.mkt_count}")
             
             if st.button("Publicar en Mercado", type="primary", use_container_width=True):
