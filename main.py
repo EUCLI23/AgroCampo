@@ -33,14 +33,12 @@ def listar_publicaciones_db():
     try:
         conn = obtener_conexion()
         cursor = conn.cursor(dictionary=True)
-        # Trae las publicaciones ordenadas desde la más reciente
         cursor.execute("SELECT * FROM publicaciones ORDER BY id DESC")
         resultados = cursor.fetchall()
         cursor.close()
         conn.close()
         return resultados
     except Exception as e:
-        # Si falla la BD por ahora, devolvemos una lista vacía para que no se caiga la app
         return []
 
 def editar_publicacion_db(id_pub, nuevo_contenido):
@@ -98,7 +96,7 @@ if "historial_ia" not in st.session_state:
         {"role": "assistant", "content": "¡Saludos! Soy AgroIA, su asesor de ingeniería agronómica. Estoy listo para proveer diagnósticos técnicos, planes de dosificación de fertilizantes e intervenciones de manejo fitosanitario de precisión. ¿Qué escenario evaluamos hoy?"}
     ]
 
-# Estructuras temporales en memoria para Market (Se mantiene igual)
+# Estructuras temporales en memoria para Market
 if "db_market" not in st.session_state:
     st.session_state.db_market = [
         {"id": 1, "autor": "Euclimar García", "titulo": "Sacos de Fertilizante NPK", "precio": "25.00", "ubicacion": "Lara, Venezuela", "descripcion": "Alta calidad para fases de crecimiento foliar.", "archivo": None, "tipo_archivo": None}
@@ -233,8 +231,16 @@ def render_dashboard():
         .block-container { max-width: 550px !important; padding: 1.5rem 1rem !important; }
         .main-header { font-size: 34px; font-weight: 900; color: #1E3D14 !important; text-align: center; margin-top: 55px !important; margin-bottom: 15px; }
         
+        /* Tarjeta general */
         .agro-card { background-color: #FFFFFF; border-radius: 14px; padding: 18px; border: 1px solid #EAEAEA; margin-bottom: 5px; position: relative; }
         .agro-card p, .agro-card div { color: #333333 !important; font-size: 15px; }
+        
+        /* CORRECCIÓN EXCLUSIVA PARA EL CHAT DE AGROIA */
+        .chat-card { border-radius: 14px; padding: 18px; border: 1px solid #EAEAEA; margin-bottom: 10px; }
+        .chat-card p, .chat-card span, .chat-card b, .chat-card div { color: #111111 !important; font-size: 15px !important; }
+        
+        /* Corrección de etiquetas de texto sobre inputs */
+        div[data-testid="stWidgetLabel"] p { color: #1E3D14 !important; font-weight: bold !important; }
         
         div[data-testid="stTextInput"] input, div[data-testid="stTextArea"] textarea, div[data-testid="stFileUploader"] section {
             background-color: #ffffff !important; color: #000000 !important; border: 1px solid #cccccc !important; border-radius: 8px !important;
@@ -282,7 +288,7 @@ def render_dashboard():
 
     st.markdown("<hr style='border:0; border-top: 1px solid #ddd; margin: 10px 0;'>", unsafe_allow_html=True)
 
-    # --- NOVEDADES (CONEXIÓN MYSQL COMPLETA) ---
+    # --- NOVEDADES ---
     if st.session_state.pantalla_actual == "Novedades":
         st.markdown("<h4 style='color:#1E3D14;'>Publicaciones de la Comunidad</h4>", unsafe_allow_html=True)
         
@@ -296,17 +302,14 @@ def render_dashboard():
             
             if st.button("Publicar", type="primary", use_container_width=True):
                 if nuevo_texto.strip():
-                    # GUARDADO EN BASE DE DATOS LOCAL
                     exito = guardar_publicacion_db(st.session_state.usuario_actual, nuevo_texto, pub_ubicacion)
                     if exito:
                         st.session_state.pub_count += 1
                         st.success("¡Publicado y guardado en MySQL con éxito!")
                         st.rerun()
 
-        # LECTURA DESDE LA BASE DE DATOS
         db_publicaciones = listar_publicaciones_db()
         
-        # Si la base de datos está vacía, mostramos por cortesía las de tus compañeras para que no se vea desierto
         if not db_publicaciones:
             db_publicaciones = [
                 {"id": -1, "autor": "Euclimar García", "contenido": "Iniciando la siembra de maíz en la zona alta.", "ubicacion": "Lara, Venezuela"},
@@ -330,7 +333,6 @@ def render_dashboard():
                         st.markdown(f'<div style="font-weight:bold; color:#1E3D14; margin-bottom: 8px;">👤 {post["autor"]}</div>', unsafe_allow_html=True)
                 
                 with col_menu:
-                    # Acciones permitidas solo si eres el autor y no es un post estático por defecto
                     if post["autor"] == st.session_state.usuario_actual and post["id"] > 0:
                         with st.popover("···", help="Opciones de publicación"):
                             st.markdown("<p style='font-weight:bold; margin-bottom:2px;'>📝 Editar publicación</p>", unsafe_allow_html=True)
@@ -357,7 +359,7 @@ def render_dashboard():
                 st.markdown("<div style='margin-bottom:20px;'></div>", unsafe_allow_html=True)
 
     # --- MARKET ---
-    elif st.session_state.pantalla_actual == "Market":
+    elif st.session_state.pantally_actual == "Market" or st.session_state.pantalla_actual == "Market":
         st.markdown("<h4 style='color:#1E3D14;'>🛒 Mercado de Productos e Insumos</h4>", unsafe_allow_html=True)
         
         with st.expander("➕ Publicar Insumo / Producto Agrícola", expanded=False):
@@ -404,15 +406,26 @@ def render_dashboard():
                 st.markdown('</div>', unsafe_allow_html=True)
             st.markdown("<div style='margin-bottom:15px;'></div>", unsafe_allow_html=True)
 
-    # --- AGROIA ---
+    # --- AGROIA (CON EL DISEÑO DE COLOR CORREGIDO Y LEGIBLE) ---
     elif st.session_state.pantalla_actual == "AgroIA":
         st.markdown("<h4 style='color:#1E3D14;'>🔬 Consultoría de Ingeniería Agronómica de Precisión</h4>", unsafe_allow_html=True)
-        for chat in st.session_state.historial_ia:
-            color = "#e8f5e9" if chat["role"] == "assistant" else "#ffffff"
-            st.markdown(f'<div class="agro-card" style="background-color:{color};"><b>{chat["role"].upper()}:</b><br>{chat["content"]}</div>', unsafe_allow_html=True)
         
+        for chat in st.session_state.historial_ia:
+            # Si responde la IA usamos un verde pastel (#e8f5e9), si escribe el usuario es blanco (#ffffff)
+            bg_color = "#e8f5e9" if chat["role"] == "assistant" else "#ffffff"
+            
+            st.markdown(f"""
+                <div class="chat-card" style="background-color: {bg_color};">
+                    <span style="font-weight: bold; color: #1E3D14;">{chat["role"].upper()}:</span><br>
+                    <span style="font-weight: normal;">{chat["content"]}</span>
+                </div>
+            """, unsafe_allow_html=True)
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        # Formulario para enviar mensajes sin perder los contrastes de colores
         with st.form("chat_form"):
-            user_text = st.text_input("Describa las variables de manejo observadas:")
+            user_text = st.text_input("Describa las variables de manejo observadas para evaluar:")
             if st.form_submit_button("Enviar a Diagnóstico Técnico"):
                 if user_text.strip():
                     st.session_state.historial_ia.append({"role": "user", "content": user_text})
