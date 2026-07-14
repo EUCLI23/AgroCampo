@@ -102,7 +102,7 @@ if "db_market" not in st.session_state:
         {"id": 1, "autor": "Euclimar García", "titulo": "Sacos de Fertilizante NPK", "precio": "25.00", "ubicacion": "Lara, Venezuela", "descripcion": "Alta calidad para fases de crecimiento foliar.", "archivo": None, "tipo_archivo": None}
     ]
 
-# LÓGICA DE RESPUESTAS AGROIA (INGENIERO AGRÓNOMO PROFESIONAL)
+# LÓGICA DE RESPUESTAS AGROIA
 def responder_ia_agronomo(mensaje_usuario, tiene_archivo=False):
     msg = mensaje_usuario.lower()
     if tiene_archivo:
@@ -235,11 +235,11 @@ def render_dashboard():
         .agro-card { background-color: #FFFFFF; border-radius: 14px; padding: 18px; border: 1px solid #EAEAEA; margin-bottom: 5px; position: relative; }
         .agro-card p, .agro-card div { color: #333333 !important; font-size: 15px; }
         
-        /* CORRECCIÓN EXCLUSIVA PARA EL CHAT DE AGROIA */
+        /* Contenedores de chat legibles */
         .chat-card { border-radius: 14px; padding: 18px; border: 1px solid #EAEAEA; margin-bottom: 10px; }
         .chat-card p, .chat-card span, .chat-card b, .chat-card div { color: #111111 !important; font-size: 15px !important; }
         
-        /* Corrección de etiquetas de texto sobre inputs */
+        /* Etiquetas de los Inputs */
         div[data-testid="stWidgetLabel"] p { color: #1E3D14 !important; font-weight: bold !important; }
         
         div[data-testid="stTextInput"] input, div[data-testid="stTextArea"] textarea, div[data-testid="stFileUploader"] section {
@@ -358,8 +358,8 @@ def render_dashboard():
                 
                 st.markdown("<div style='margin-bottom:20px;'></div>", unsafe_allow_html=True)
 
-    # --- MARKET ---
-    elif st.session_state.pantally_actual == "Market" or st.session_state.pantalla_actual == "Market":
+    # --- MARKET (¡LÍNEA 362 CORREGIDA AQUÍ!) ---
+    elif st.session_state.pantalla_actual == "Market":
         st.markdown("<h4 style='color:#1E3D14;'>🛒 Mercado de Productos e Insumos</h4>", unsafe_allow_html=True)
         
         with st.expander("➕ Publicar Insumo / Producto Agrícola", expanded=False):
@@ -406,14 +406,12 @@ def render_dashboard():
                 st.markdown('</div>', unsafe_allow_html=True)
             st.markdown("<div style='margin-bottom:15px;'></div>", unsafe_allow_html=True)
 
-    # --- AGROIA (CON EL DISEÑO DE COLOR CORREGIDO Y LEGIBLE) ---
+    # --- AGROIA ---
     elif st.session_state.pantalla_actual == "AgroIA":
         st.markdown("<h4 style='color:#1E3D14;'>🔬 Consultoría de Ingeniería Agronómica de Precisión</h4>", unsafe_allow_html=True)
         
         for chat in st.session_state.historial_ia:
-            # Si responde la IA usamos un verde pastel (#e8f5e9), si escribe el usuario es blanco (#ffffff)
             bg_color = "#e8f5e9" if chat["role"] == "assistant" else "#ffffff"
-            
             st.markdown(f"""
                 <div class="chat-card" style="background-color: {bg_color};">
                     <span style="font-weight: bold; color: #1E3D14;">{chat["role"].upper()}:</span><br>
@@ -423,7 +421,6 @@ def render_dashboard():
         
         st.markdown("<br>", unsafe_allow_html=True)
         
-        # Formulario para enviar mensajes sin perder los contrastes de colores
         with st.form("chat_form"):
             user_text = st.text_input("Describa las variables de manejo observadas para evaluar:")
             if st.form_submit_button("Enviar a Diagnóstico Técnico"):
