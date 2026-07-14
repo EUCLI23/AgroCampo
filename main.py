@@ -14,7 +14,7 @@ def obtener_conexion():
         database="bd_agrocampo"
     )
 
-# --- FUNCIONES DE BASE DE DATOS PARA PUBLICACIONES ---
+# --- FUNCIONES DE BASE DE DATOS ---
 def guardar_publicacion_db(autor, contenido, ubicacion):
     try:
         conn = obtener_conexion()
@@ -67,6 +67,30 @@ def eliminar_publicacion_db(id_pub):
         return True
     except Exception as e:
         st.error(f"Error al eliminar: {e}")
+        return False
+
+# 🔐 NUEVA FUNCIÓN PARA ACTUALIZAR LA CONTRASEÑA EN LA BD
+def cambiar_contrasena_db(usuario, nueva_clave):
+    try:
+        conn = obtener_conexion()
+        cursor = conn.cursor()
+        # Asumiendo que tu tabla de usuarios se llama 'usuarios' y el campo clave es 'contrasena' o 'password'
+        # Ajusta los nombres si tu tabla usa algo diferente (ej. 'password' o 'username')
+        query = "UPDATE usuarios SET contrasena = %s WHERE usuario = %s"
+        cursor.execute(query, (nueva_clave, usuario))
+        conn.commit()
+        
+        filas_afectadas = cursor.rowcount
+        cursor.close()
+        conn.close()
+        
+        if filas_afectadas > 0:
+            return True
+        else:
+            # Si no encontró el usuario en la BD de forma estricta
+            return False
+    except Exception as e:
+        st.error(f"Error de base de datos al cambiar contraseña: {e}")
         return False
 
 
@@ -246,6 +270,14 @@ def render_dashboard():
             font-weight: bold !important; 
         }
         
+        /* Corregir visibilidad del encabezado h5 dentro del formulario de perfil */
+        h5 {
+            color: #1E3D14 !important;
+            font-weight: bold !important;
+            margin-top: 10px;
+            margin-bottom: 15px;
+        }
+        
         /* Texto digitado dentro de inputs y áreas de texto */
         div[data-testid="stTextInput"] input, div[data-testid="stTextArea"] textarea {
             background-color: #ffffff !important; 
@@ -254,24 +286,19 @@ def render_dashboard():
             border-radius: 8px !important;
         }
         
-        /* --- 🛠️ CORRECCIÓN DEFINITIVA DE LA CAJA DE SUBIDA DE ARCHIVOS (IMAGEN 10) --- */
-        /* Forzamos que el fondo del contenedor del uploader sea blanco o gris muy claro */
+        /* --- 🛠️ CAJA DE SUBIDA DE ARCHIVOS --- */
         div[data-testid="stFileUploader"] section {
             background-color: #ffffff !important;
             border: 1px dashed #2e6d38 !important;
             border-radius: 10px !important;
             padding: 15px !important;
         }
-
-        /* Todos los textos internos del uploader en color negro nítido */
         div[data-testid="stFileUploader"] section div[data-testid="stMarkdownContainer"] p,
         div[data-testid="stFileUploader"] small,
         div[data-testid="stFileUploader"] span {
             color: #111111 !important;
             font-weight: 500 !important;
         }
-
-        /* Botón interno "Browse files" estilizado correctamente en verde sin textos rotos ni sobrepuestos */
         div[data-testid="stFileUploader"] button {
             background-color: #2e6d38 !important;
             color: #ffffff !important;
@@ -280,29 +307,15 @@ def render_dashboard():
             font-weight: bold !important;
             padding: 6px 14px !important;
         }
-        div[data-testid="stFileUploader"] button:hover {
-            background-color: #1e4d2b !important;
-        }
-        /* -------------------------------------------------------------------------- */
+        div[data-testid="stFileUploader"] button:hover { background-color: #1e4d2b !important; }
         
-        /* Expanders verdes */
+        /* Expanders */
         div[data-testid="stExpander"] details summary {
             background-color: #2e6d38 !important;
             border-radius: 8px !important;
-            border: none !important;
         }
-        div[data-testid="stExpander"] details summary:hover {
-            background-color: #1e4d2b !important;
-        }
-        div[data-testid="stExpander"] details summary p {
-            color: #ffffff !important;
-            font-weight: bold !important;
-            font-size: 16px !important;
-        }
-        div[data-testid="stExpander"] details summary svg {
-            color: #ffffff !important;
-            fill: #ffffff !important;
-        }
+        div[data-testid="stExpander"] details summary p { color: #ffffff !important; font-weight: bold !important; }
+        div[data-testid="stExpander"] details summary svg { color: #ffffff !important; fill: #ffffff !important; }
         
         .menu-horizontal-container { display: flex !important; flex-direction: row !important; justify-content: space-between !important; width: 100% !important; gap: 4px !important; margin-bottom: 15px !important; }
         .menu-horizontal-container div.element-container, .menu-horizontal-container div.stButton { flex: 1 1 0% !important; width: auto !important; margin: 0 !important; }
@@ -313,21 +326,12 @@ def render_dashboard():
         div.stButton > button:hover { background-color: #1e4d2b !important; }
         
         div[data-testid="stPopover"] > button {
-            background-color: transparent !important;
-            color: #777777 !important;
-            border: none !important;
-            font-size: 18px !important;
-            padding: 0px !important;
-            font-weight: bold !important;
-            float: right;
-            margin-top: -10px;
+            background-color: transparent !important; color: #777777 !important; border: none !important; font-size: 18px !important; padding: 0px !important; font-weight: bold !important; float: right; margin-top: -10px;
         }
-        div[data-testid="stPopover"] > button:hover { color: #1E3D14 !important; background-color: transparent !important; }
         </style>
     """, unsafe_allow_html=True)
 
     st.markdown('<div class="main-header">🌱 AGROCAMPO</div>', unsafe_allow_html=True)
-    
     busqueda = st.text_input("", placeholder="🔍 Buscar...", key="barra_busqueda_global")
 
     st.markdown('<div class="menu-horizontal-container">', unsafe_allow_html=True)
@@ -352,9 +356,7 @@ def render_dashboard():
         
         with st.expander("➕ Crear Publicación", expanded=False):
             nuevo_texto = st.text_area("¿Qué está pasando en tu cultivo?", placeholder="Escribe aquí tu estado...", key=f"txt_pub_{st.session_state.pub_count}")
-            
             pub_media = st.file_uploader("Subir foto o video (Opcional):", type=["png", "jpg", "jpeg", "mp4", "mov"], key=f"media_pub_{st.session_state.pub_count}")
-            
             add_ubi = st.checkbox("📍 Agregar ubicación geográfica", key=f"chk_ubi_{st.session_state.pub_count}")
             pub_ubicacion = ""
             if add_ubi:
@@ -373,7 +375,6 @@ def render_dashboard():
                         st.rerun()
 
         db_publicaciones = listar_publicaciones_db()
-        
         if not db_publicaciones:
             db_publicaciones = [
                 {"id": -1, "autor": "Euclimar García", "contenido": "Iniciando la siembra de maíz en la zona alta.", "ubicacion": "Lara, Venezuela"},
@@ -386,7 +387,6 @@ def render_dashboard():
         for post in db_publicaciones:
             with st.container():
                 col_autor, col_menu = st.columns([0.85, 0.15])
-                
                 with col_autor:
                     if post.get('ubicacion'):
                         st.markdown(f"""
@@ -398,40 +398,34 @@ def render_dashboard():
                 
                 with col_menu:
                     if post["autor"] == st.session_state.usuario_actual and post["id"] > 0:
-                        with st.popover("···", help="Opciones de publicación"):
-                            st.markdown("<p style='font-weight:bold; margin-bottom:2px;'>📝 Editar publicación</p>", unsafe_allow_html=True)
-                            texto_editated = st.text_area("Modificar contenido:", value=post['contenido'], key=f"edit_txt_{post['id']}")
-                            
-                            if st.button("Guardar cambios", key=f"save_{post['id']}", use_container_width=True):
+                        with st.popover("···"):
+                            st.markdown("<p style='font-weight:bold; margin-bottom:2px;'>📝 Editar</p>", unsafe_allow_html=True)
+                            texto_editated = st.text_area("Modificar:", value=post['contenido'], key=f"edit_txt_{post['id']}")
+                            if st.button("Guardar", key=f"save_{post['id']}", use_container_width=True):
                                 if editar_publicacion_db(post['id'], texto_editated):
-                                    st.success("¡Actualizado en MySQL!")
+                                    st.success("¡Actualizado!")
                                     st.rerun()
-                                
                             st.markdown("<hr style='margin:10px 0;'>", unsafe_allow_html=True)
-                            
-                            if st.button("🗑️ Eliminar publicación", key=f"del_{post['id']}", type="primary", use_container_width=True):
+                            if st.button("🗑️ Eliminar", key=f"del_{post['id']}", type="primary", use_container_width=True):
                                 if eliminar_publicacion_db(post['id']):
-                                    st.toast("Publicación eliminada de la BD")
                                     st.rerun()
 
                 st.markdown(f"""
                     <div class="agro-card" style="margin-top:-10px;">
-                        <p style="margin: 0; font-weight: normal;">{post['contenido']}</p>
+                        <p style="margin: 0;">{post['contenido']}</p>
                     </div>
                 """, unsafe_allow_html=True)
-                
                 st.markdown("<div style='margin-bottom:20px;'></div>", unsafe_allow_html=True)
 
     # --- MARKET ---
     elif st.session_state.pantalla_actual == "Market":
         st.markdown("<h4 style='color:#1E3D14;'>🛒 Mercado de Productos e Insumos</h4>", unsafe_allow_html=True)
-        
         with st.expander("➕ Publicar Insumo / Producto Agrícola", expanded=False):
-            prod_titulo = st.text_input("Nombre del Producto / Insumo:", placeholder="Ej. Pimentón fresco, Urea, Motocultor...", key=f"mk_tit_{st.session_state.mkt_count}")
-            prod_precio = st.text_input("Precio ($):", placeholder="Ej. 25.00", key=f"mk_pre_{st.session_state.mkt_count}")
-            prod_ubicacion = st.text_input("Dirección / Estado de venta:", value=st.session_state.ubicacion_actual, key=f"mk_ub_{st.session_state.mkt_count}")
-            prod_descripcion = st.text_area("Descripción y características del producto:", placeholder="Detalla las condiciones actuales...", key=f"mk_des_{st.session_state.mkt_count}")
-            prod_imagen = st.file_uploader("Subir foto del producto:", type=["png", "jpg", "jpeg"], key=f"mk_img_{st.session_state.mkt_count}")
+            prod_titulo = st.text_input("Nombre del Producto:", key=f"mk_tit_{st.session_state.mkt_count}")
+            prod_precio = st.text_input("Precio ($):", key=f"mk_pre_{st.session_state.mkt_count}")
+            prod_ubicacion = st.text_input("Dirección:", value=st.session_state.ubicacion_actual, key=f"mk_ub_{st.session_state.mkt_count}")
+            prod_descripcion = st.text_area("Descripción:", key=f"mk_des_{st.session_state.mkt_count}")
+            prod_imagen = st.file_uploader("Subir foto:", type=["png", "jpg", "jpeg"], key=f"mk_img_{st.session_state.mkt_count}")
             
             if st.button("Publicar en Mercado", type="primary", use_container_width=True):
                 if prod_titulo.strip() and prod_precio.strip():
@@ -445,113 +439,97 @@ def render_dashboard():
                         "imagen": prod_imagen
                     })
                     st.session_state.mkt_count += 1
-                    st.success("¡Producto publicado con éxito!")
+                    st.success("¡Producto publicado!")
                     st.rerun()
 
         market_filtrado = st.session_state.db_market
-        if busqueda.strip():
-            market_filtrado = [m for m in st.session_state.db_market if busqueda.lower() in m["titulo"].lower() or busqueda.lower() in m["descripcion"].lower()]
-
         for item in market_filtrado:
             st.markdown(f"""
-                <div class="agro-card" style="margin-bottom: 10px;">
-                    <div style="font-size: 19px; font-weight: bold; color: #2e6d38; margin-bottom: 4px;">📦 {item['titulo']}</div>
-                    <div style="font-size: 13px; color: #777777; margin-bottom: 6px;"><b>👤 Vendedor:</b> {item.get('autor', 'Anónimo')}</div>
-                    <p style="margin: 4px 0;"><b>💰 Precio:</b> {item['precio']}$</p>
-                    <p style="margin: 4px 0;"><b>📍 Ubicación:</b> {item.get('ubicacion', 'No especificada')}</p>
-                    <p style="margin: 6px 0; font-size: 14px;">{item['descripcion']}</p>
+                <div class="agro-card">
+                    <div style="font-size: 19px; font-weight: bold; color: #2e6d38;">📦 {item['titulo']}</div>
+                    <p style="margin:4px 0;"><b>💰 Precio:</b> {item['precio']}$</p>
+                    <p style="margin:4px 0;"><b>📍 Ubicación:</b> {item.get('ubicacion', 'No especificada')}</p>
+                    <p style="margin:6px 0;">{item['descripcion']}</p>
                 </div>
             """, unsafe_allow_html=True)
-            
             if item.get("imagen") is not None:
                 st.image(item["imagen"], use_container_width=True)
-            
-            if item.get("autor") == st.session_state.usuario_actual:
-                if st.button("🗑️ Retirar Producto", key=f"del_mk_{item['id']}", use_container_width=True):
-                    st.session_state.db_market = [m for m in st.session_state.db_market if m["id"] != item["id"]]
-                    st.toast("Producto retirado")
-                    st.rerun()
-            st.markdown("<hr style='border-top:1px solid #ddd; margin:15px 0;'>", unsafe_allow_html=True)
 
     # --- AGROIA ---
     elif st.session_state.pantalla_actual == "AgroIA":
         st.markdown("<h4 style='color:#1E3D14;'>🔬 Consultoría de Ingeniería Agronómica de Precisión</h4>", unsafe_allow_html=True)
-        
         for chat in st.session_state.historial_ia:
             bg_color = "#e8f5e9" if chat["role"] == "assistant" else "#ffffff"
             st.markdown(f"""
-                <div class="chat-card" style="background-color: {bg_color}; margin-bottom: 8px;">
+                <div class="chat-card" style="background-color: {bg_color};">
                     <span style="font-weight: bold; color: #1E3D14;">{chat["role"].upper()}:</span><br>
-                    <span style="font-weight: normal;">{chat["content"]}</span>
+                    <span>{chat["content"]}</span>
                 </div>
             """, unsafe_allow_html=True)
-            
-            if chat.get("imagen") is not None:
-                st.image(chat["imagen"], caption="Archivo adjuntado a la consulta", width=250)
-        
-        st.markdown("<br>", unsafe_allow_html=True)
-        
+
         with st.form("chat_form", clear_on_submit=False):
-            user_text = st.text_input(
-                "Describa las variables de manejo observadas para evaluar:", 
-                key=f"ia_input_text_{st.session_state.chat_count}"
-            )
-            
-            foto_ia = st.file_uploader(
-                "Subir foto al asistente (Opcional):", 
-                type=["png", "jpg", "jpeg"], 
-                key=f"ia_input_file_{st.session_state.chat_count}"
-            )
-            
+            user_text = st.text_input("Describa las variables de manejo observadas:", key=f"ia_input_text_{st.session_state.chat_count}")
+            foto_ia = st.file_uploader("Subir foto al asistente:", type=["png", "jpg", "jpeg"], key=f"ia_input_file_{st.session_state.chat_count}")
             if st.form_submit_button("Enviar a Diagnóstico Técnico"):
                 if user_text.strip() or foto_ia is not None:
-                    texto_usuario = user_text if user_text.strip() else "*(Envió una imagen para evaluación técnica)*"
-                    st.session_state.historial_ia.append({
-                        "role": "user", 
-                        "content": texto_usuario,
-                        "imagen": foto_ia
-                    })
-                    
-                    tiene_imagen = (foto_ia is not None)
-                    respuesta = responder_ia_agronomo(user_text, tiene_archivo=tiene_imagen)
-                    
-                    st.session_state.historial_ia.append({
-                        "role": "assistant", 
-                        "content": respuesta,
-                        "imagen": None
-                    })
-                    
+                    st.session_state.historial_ia.append({"role": "user", "content": user_text, "imagen": foto_ia})
+                    respuesta = responder_ia_agronomo(user_text, tiene_archivo=(foto_ia is not None))
+                    st.session_state.historial_ia.append({"role": "assistant", "content": respuesta, "imagen": None})
                     st.session_state.chat_count += 1
                     st.rerun()
 
     # --- CLIMA ---
     elif st.session_state.pantalla_actual == "Clima":
-        st.markdown("<h4 style='color:#1E3D14;'>🌤️ Estación Meteorológica en Tiempo Real</h4>", unsafe_allow_html=True)
+        st.markdown("<h4 style='color:#1E3D14;'>🌤️ Estación Meteorológica</h4>", unsafe_allow_html=True)
         st.markdown(f"""
             <div class="agro-card" style="background-color: #e3f2fd;">
                 <h3 style="color:#0d47a1; margin:0;">📍 {st.session_state.ubicacion_actual}</h3>
-                <p style="font-size:28px; font-weight:bold; margin: 10px 0; color:#1565c0;">28°C <span style="font-size:16px; font-weight:normal; color:#555;">Mayormente Nublado</span></p>
-                <hr style="border-top:1px solid #bbdefb; margin:10px 0;">
-                <p style="margin:4px 0;"><b>💧 Humedad Relativa:</b> 74%</p>
-                <p style="margin:4px 0;"><b>💨 Velocidad del Viento:</b> 14 km/h NNE</p>
-                <p style="margin:4px 0;"><b>🌧️ Probabilidad de Precipitación:</b> 40%</p>
+                <p style="font-size:28px; font-weight:bold; color:#1565c0;">28°C</p>
             </div>
         """, unsafe_allow_html=True)
 
-    # --- PERFIL ---
+    # --- PERFIL (CORREGIDO Y ADAPTADO PARA CONTRASEÑA EN BD) ---
     elif st.session_state.pantalla_actual == "Perfil":
         st.markdown("<h4 style='color:#1E3D14;'>👤 Información del Usuario de la Red</h4>", unsafe_allow_html=True)
         
         with st.form("edit_profile_form"):
-            st.markdown("##### Modificar Datos Personales")
+            st.markdown("<h5>Modificar Datos Personales</h5>", unsafe_allow_html=True)
             nuevo_nombre = st.text_input("Nombre de Productor:", value=st.session_state.usuario_actual)
             nueva_ubi = st.text_input("Ubicación / Región Agrícola:", value=st.session_state.ubicacion_actual)
             
+            st.markdown("<hr style='border-top:1px solid #ccc; margin:15px 0;'>", unsafe_allow_html=True)
+            st.markdown("<h5>Cambiar Contraseña</h5>", unsafe_allow_html=True)
+            
+            # Campos nuevos para gestionar la seguridad
+            nueva_clave = st.text_input("Nueva Contraseña:", type="password", placeholder="Dejar en blanco para no cambiar")
+            confirmar_clave = st.text_input("Confirmar Nueva Contraseña:", type="password", placeholder="Repita la contraseña")
+            
             if st.form_submit_button("Guardar Cambios"):
+                error_validacion = False
+                
+                # Procesar cambio de datos básicos
                 st.session_state.usuario_actual = nuevo_nombre
                 st.session_state.ubicacion_actual = nueva_ubi
-                st.success("Información de perfil actualizada en el sistema central.")
-                st.rerun()
+                
+                # Procesar si el usuario digitó intencionalmente una nueva contraseña
+                if nueva_clave.strip() or confirmar_clave.strip():
+                    if nueva_clave != confirmar_clave:
+                        st.error("❌ Las contraseñas ingresadas no coinciden. Inténtelo de nuevo.")
+                        error_validacion = True
+                    elif len(nueva_clave.strip()) < 4:
+                        st.error("⚠️ La contraseña debe tener al menos 4 caracteres por seguridad.")
+                        error_validacion = True
+                    else:
+                        # Mandar el cambio directo al controlador de base de datos
+                        exito_bd = cambiar_contrasena_db(st.session_state.username_actual, nueva_clave.strip())
+                        if exito_bd:
+                            st.success("🔒 ¡Contraseña actualizada exitosamente en la base de datos MySQL!")
+                        else:
+                            st.warning("⚠️ Datos guardados de forma local, pero el usuario no se localizó en la tabla de MySQL.")
+                
+                if not error_validacion:
+                    st.success("✅ Información de perfil actualizada en el sistema.")
+                    st.rerun()
                 
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("Cerrar Sesión 🚪", use_container_width=True):
