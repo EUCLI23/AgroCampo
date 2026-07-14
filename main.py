@@ -90,7 +90,7 @@ if "pub_count" not in st.session_state:
 if "mkt_count" not in st.session_state:
     st.session_state.mkt_count = 0
 if "chat_count" not in st.session_state:
-    st.session_state.chat_count = 0  # Contador para limpiar la barra de la IA
+    st.session_state.chat_count = 0  
 
 # Historial del Chat de la IA
 if "historial_ia" not in st.session_state:
@@ -248,6 +248,23 @@ def render_dashboard():
             background-color: #ffffff !important; color: #000000 !important; border: 1px solid #cccccc !important; border-radius: 8px !important;
         }
         
+        /* --- ESTILIZACIÓN VERDE PARA EL CUADRO DE SUBIDA --- */
+        div[data-testid="stFileUploader"] button {
+            background-color: #2e6d38 !important;
+            color: #ffffff !important;
+            border: 1px solid #1e4d2b !important;
+            border-radius: 8px !important;
+            font-weight: bold !important;
+        }
+        div[data-testid="stFileUploader"] button:hover {
+            background-color: #1e4d2b !important;
+            color: #ffffff !important;
+        }
+        /* Eliminar u ocultar los textos pequeños nativos en inglés que trae Streamlit por defecto */
+        div[data-testid="stFileUploader"] data-testid {
+            color: #2e6d38 !important;
+        }
+        
         .menu-horizontal-container { display: flex !important; flex-direction: row !important; justify-content: space-between !important; width: 100% !important; gap: 4px !important; margin-bottom: 15px !important; }
         .menu-horizontal-container div.element-container, .menu-horizontal-container div.stButton { flex: 1 1 0% !important; width: auto !important; margin: 0 !important; }
         
@@ -370,6 +387,7 @@ def render_dashboard():
             prod_ubicacion = st.text_input("Dirección / Estado de venta:", value=st.session_state.ubicacion_actual, key=f"mk_ub_{st.session_state.mkt_count}")
             prod_descripcion = st.text_area("Descripción y características del producto:", placeholder="Detalla las condiciones actuales...", key=f"mk_des_{st.session_state.mkt_count}")
             
+            # Cambiado a "Subir"
             prod_imagen = st.file_uploader("Subir foto del producto:", type=["png", "jpg", "jpeg"], key=f"mk_img_{st.session_state.mkt_count}")
             
             if st.button("Publicar en Mercado", type="primary", use_container_width=True):
@@ -412,11 +430,10 @@ def render_dashboard():
                     st.rerun()
             st.markdown("<hr style='border-top:1px solid #ddd; margin:15px 0;'>", unsafe_allow_html=True)
 
-    # --- AGROIA (CON COMPONENTE MULTIMEDIA Y VACIADO AUTOMÁTICO DE INPUT) ---
+    # --- AGROIA ---
     elif st.session_state.pantalla_actual == "AgroIA":
-        st.markdown("<h4 style='color:#1E3D14;'>🔬 Consultoría de Ingeniería Agronómica de Precision</h4>", unsafe_allow_html=True)
+        st.markdown("<h4 style='color:#1E3D14;'>🔬 Consultoría de Ingeniería Agronómica de Precisión</h4>", unsafe_allow_html=True)
         
-        # Renderizado del historial de mensajes
         for chat in st.session_state.historial_ia:
             bg_color = "#e8f5e9" if chat["role"] == "assistant" else "#ffffff"
             st.markdown(f"""
@@ -426,30 +443,26 @@ def render_dashboard():
                 </div>
             """, unsafe_allow_html=True)
             
-            # Si el mensaje incluye una imagen cargada, se muestra justo debajo en el historial
             if chat.get("imagen") is not None:
                 st.image(chat["imagen"], caption="Archivo adjuntado a la consulta", width=250)
         
         st.markdown("<br>", unsafe_allow_html=True)
         
-        # Formulario de consulta estructurado
         with st.form("chat_form", clear_on_submit=False):
-            # Usando la clave dinámica key=f"..." basada en un contador limpiamos la barra tras presionar enviar
             user_text = st.text_input(
                 "Describa las variables de manejo observadas para evaluar:", 
                 key=f"ia_input_text_{st.session_state.chat_count}"
             )
             
-            # Opción de agregar foto a la IA tal cual como en Gemini
+            # Cambiado a "Subir" en lugar de "Upload"
             foto_ia = st.file_uploader(
-                "📸 Adjuntar foto al asistente (Opcional):", 
+                "Subir foto al asistente (Opcional):", 
                 type=["png", "jpg", "jpeg"], 
                 key=f"ia_input_file_{st.session_state.chat_count}"
             )
             
             if st.form_submit_button("Enviar a Diagnóstico Técnico"):
                 if user_text.strip() or foto_ia is not None:
-                    # Guardamos el mensaje e imagen en el historial
                     texto_usuario = user_text if user_text.strip() else "*(Envió una imagen para evaluación técnica)*"
                     st.session_state.historial_ia.append({
                         "role": "user", 
@@ -457,7 +470,6 @@ def render_dashboard():
                         "imagen": foto_ia
                     })
                     
-                    # Generamos la respuesta técnica evaluando si vino con archivo multimedia
                     tiene_imagen = (foto_ia is not None)
                     respuesta = responder_ia_agronomo(user_text, tiene_archivo=tiene_imagen)
                     
@@ -467,7 +479,6 @@ def render_dashboard():
                         "imagen": None
                     })
                     
-                    # Incrementamos el contador para obligar a Streamlit a renderizar los inputs completamente vacíos
                     st.session_state.chat_count += 1
                     st.rerun()
 
@@ -513,3 +524,4 @@ if not st.session_state.autenticado:
     render_autentizacion()
 else:
     render_dashboard()
+    
