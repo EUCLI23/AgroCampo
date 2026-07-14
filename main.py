@@ -248,19 +248,46 @@ def render_dashboard():
             background-color: #ffffff !important; color: #000000 !important; border: 1px solid #cccccc !important; border-radius: 8px !important;
         }
         
-        /* --- ESTILIZACIÓN VERDE PARA EL CUADRO DE SUBIDA --- */
+        /* --- ESTILIZACIÓN DE LOS CUADROS DESPLEGABLES (EXPANDERS NEGROS -> VERDES) --- */
+        div[data-testid="stExpander"] details summary {
+            background-color: #2e6d38 !important;
+            border-radius: 8px !important;
+            border: none !important;
+        }
+        div[data-testid="stExpander"] details summary:hover {
+            background-color: #1e4d2b !important;
+        }
+        div[data-testid="stExpander"] details summary p {
+            color: #ffffff !important;
+            font-weight: bold !important;
+            font-size: 16px !important;
+        }
+        div[data-testid="stExpander"] details summary svg {
+            color: #ffffff !important;
+            fill: #ffffff !important;
+        }
+
+        /* --- ESTILIZACIÓN VERDE PARA LOS BOTONES DE CARGA (Que digan SUBIR) --- */
         div[data-testid="stFileUploader"] button {
             background-color: #2e6d38 !important;
-            color: #ffffff !important;
+            color: transparent !important; /* Oculta el texto original en inglés */
             border: 1px solid #1e4d2b !important;
             border-radius: 8px !important;
             font-weight: bold !important;
+            position: relative;
+        }
+        div[data-testid="stFileUploader"] button::after {
+            content: 'Subir';
+            color: #ffffff !important;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
         }
         div[data-testid="stFileUploader"] button:hover {
             background-color: #1e4d2b !important;
-            color: #ffffff !important;
         }
-        /* Eliminar u ocultar los textos pequeños nativos en inglés que trae Streamlit por defecto */
+        /* Eliminar u ocultar los textos pequeños nativos en inglés */
         div[data-testid="stFileUploader"] data-testid {
             color: #2e6d38 !important;
         }
@@ -314,13 +341,17 @@ def render_dashboard():
         with st.expander("➕ Crear Publicación", expanded=False):
             nuevo_texto = st.text_area("¿Qué está pasando en tu cultivo?", placeholder="Escribe aquí tu estado...", key=f"txt_pub_{st.session_state.pub_count}")
             
+            # --- SECCIÓN RECUPERADA: SUBIR FOTOS/VIDEOS EN NOVEDADES ---
+            pub_media = st.file_uploader("Subir foto o video (Opcional):", type=["png", "jpg", "jpeg", "mp4", "mov"], key=f"media_pub_{st.session_state.pub_count}")
+            
             add_ubi = st.checkbox("📍 Agregar ubicación geográfica", key=f"chk_ubi_{st.session_state.pub_count}")
             pub_ubicacion = ""
             if add_ubi:
                 pub_ubicacion = st.text_input("Ubicación del cultivo:", placeholder="Ej. El Tostao, Barquisimeto", key=f"inp_ubi_{st.session_state.pub_count}")
             
             if st.button("Publicar", type="primary", use_container_width=True):
-                if nuevo_texto.strip():
+                if nuevo_texto.strip() or pub_media is not None:
+                    # NOTA: Aunque suba la foto en UI, se envía el texto y ubicación a tu BD MySQL
                     exito = guardar_publicacion_db(st.session_state.usuario_actual, nuevo_texto, pub_ubicacion)
                     if exito:
                         st.session_state.pub_count += 1
@@ -387,7 +418,6 @@ def render_dashboard():
             prod_ubicacion = st.text_input("Dirección / Estado de venta:", value=st.session_state.ubicacion_actual, key=f"mk_ub_{st.session_state.mkt_count}")
             prod_descripcion = st.text_area("Descripción y características del producto:", placeholder="Detalla las condiciones actuales...", key=f"mk_des_{st.session_state.mkt_count}")
             
-            # Cambiado a "Subir"
             prod_imagen = st.file_uploader("Subir foto del producto:", type=["png", "jpg", "jpeg"], key=f"mk_img_{st.session_state.mkt_count}")
             
             if st.button("Publicar en Mercado", type="primary", use_container_width=True):
@@ -454,7 +484,6 @@ def render_dashboard():
                 key=f"ia_input_text_{st.session_state.chat_count}"
             )
             
-            # Cambiado a "Subir" en lugar de "Upload"
             foto_ia = st.file_uploader(
                 "Subir foto al asistente (Opcional):", 
                 type=["png", "jpg", "jpeg"], 
@@ -524,4 +553,3 @@ if not st.session_state.autenticado:
     render_autentizacion()
 else:
     render_dashboard()
-    
