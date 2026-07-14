@@ -43,8 +43,8 @@ if "historial_ia" not in st.session_state:
 # Estructuras temporales en memoria (Publicaciones globales visibles por todos)
 if "db_publicaciones" not in st.session_state:
     st.session_state.db_publicaciones = [
-        {"id": 1, "autor": "Euclimar García", "contenido": "Iniciando la siembra de maíz en la zona alta.", "archivo": None, "tipo_archivo": None},
-        {"id": 2, "autor": "Jetsiber Simancas", "contenido": "Evaluando umbral de daño económico para control químico de insectos.", "archivo": None, "tipo_archivo": None}
+        {"id": 1, "autor": "Euclimar García", "contenido": "Iniciando la siembra de maíz en la zona alta.", "archivo": None, "tipo_archivo": None, "ubicacion": "Lara, Venezuela"},
+        {"id": 2, "autor": "Jetsiber Simancas", "contenido": "Evaluando umbral de daño económico para control químico de insectos.", "archivo": None, "tipo_archivo": None, "ubicacion": ""}
     ]
 if "db_market" not in st.session_state:
     st.session_state.db_market = [
@@ -180,7 +180,7 @@ def render_dashboard():
         .block-container { max-width: 550px !important; padding: 1.5rem 1rem !important; }
         .main-header { font-size: 34px; font-weight: 900; color: #1E3D14 !important; text-align: center; margin-top: 55px !important; margin-bottom: 15px; }
         
-        .agro-card { background-color: #FFFFFF; border-radius: 14px; padding: 18px; border: 1px solid #EAEAEA; margin-bottom: 5px; }
+        .agro-card { background-color: #FFFFFF; border-radius: 14px; padding: 18px; border: 1px solid #EAEAEA; margin-bottom: 5px; position: relative; }
         .agro-card p, .agro-card div { color: #333333 !important; font-size: 15px; }
         
         /* Cajas de texto blancas del interior */
@@ -197,10 +197,18 @@ def render_dashboard():
         }
         div.stButton > button:hover { background-color: #1e4d2b !important; }
         
-        .btn-eliminar > div.stButton > button {
-            background-color: #fce8e6 !important; color: #cc3333 !important; border: 1px solid #f5c2c2 !important; font-size: 11px !important; padding: 2px 5px !important; border-radius: 4px !important; margin-top: -5px !important;
+        /* Botón Popover de Opciones (...) alineado a la derecha */
+        div[data-testid="stPopover"] > button {
+            background-color: transparent !important;
+            color: #777777 !important;
+            border: none !important;
+            font-size: 18px !important;
+            padding: 0px !important;
+            font-weight: bold !important;
+            float: right;
+            margin-top: -10px;
         }
-        .btn-eliminar > div.stButton > button:hover { background-color: #cc3333 !important; color: #ffffff !important; }
+        div[data-testid="stPopover"] > button:hover { color: #1E3D14 !important; background-color: transparent !important; }
         </style>
     """, unsafe_allow_html=True)
 
@@ -232,8 +240,13 @@ def render_dashboard():
         
         with st.expander("➕ Crear Publicación", expanded=False):
             nuevo_texto = st.text_area("¿Qué está pasando en tu cultivo?", placeholder="Escribe aquí tu estado...", key=f"txt_pub_{st.session_state.pub_count}")
-            # Carga de fotos y videos cortos
             nuevo_archivo = st.file_uploader("Cargar foto/video", type=["png", "jpg", "jpeg", "mp4", "mov"], key=f"file_pub_{st.session_state.pub_count}")
+            
+            # AGREGADO: Checkbox y campo opcional para la ubicación geográfica
+            add_ubi = st.checkbox("📍 Agregar ubicación geográfica", key=f"chk_ubi_{st.session_state.pub_count}")
+            pub_ubicacion = ""
+            if add_ubi:
+                pub_ubicacion = st.text_input("Ubicación del cultivo:", placeholder="Ej. El Tostao, Barquisimeto", key=f"inp_ubi_{st.session_state.pub_count}")
             
             if st.button("Publicar", type="primary", use_container_width=True):
                 if nuevo_texto.strip() or nuevo_archivo is not None:
@@ -246,7 +259,8 @@ def render_dashboard():
                         "autor": st.session_state.usuario_actual,
                         "contenido": nuevo_texto,
                         "archivo": nuevo_archivo,
-                        "tipo_archivo": tipo
+                        "tipo_archivo": tipo,
+                        "ubicacion": pub_ubicacion  # Guardamos la ubicación en la estructura
                     })
                     st.session_state.pub_count += 1
                     st.success("¡Publicado con éxito!")
@@ -257,28 +271,54 @@ def render_dashboard():
             publicaciones_filtradas = [p for p in st.session_state.db_publicaciones if busqueda.lower() in p["contenido"].lower() or busqueda.lower() in p["autor"].lower()]
 
         for post in publicaciones_filtradas:
-            st.markdown(f"""
-                <div class="agro-card">
-                    <div style="font-weight:bold; color:#1E3D14;">👤 {post['autor']}</div>
-                    <p style="margin: 8px 0; font-weight: normal;">{post['contenido']}</p>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            # Renderizado condicional si es imagen o video corto
-            if post.get("archivo") is not None:
-                if post.get("tipo_archivo") == "video":
-                    st.video(post["archivo"])
-                else:
-                    st.image(post["archivo"], use_column_width=True)
-            
-            if post["autor"] == st.session_state.usuario_actual:
-                st.markdown('<div class="btn-eliminar">', unsafe_allow_html=True)
-                if st.button("🗑️ Eliminar mi publicación", key=f"del_{post['id']}"):
-                    st.session_state.db_publicaciones = [p for p in st.session_state.db_publicaciones if p["id"] != post["id"]]
-                    st.toast("Publicación eliminada")
-                    st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
-            st.markdown("<div style='margin-bottom:15px;'></div>", unsafe_allow_html=True)
+            # Iniciamos el contenedor de la tarjeta
+            with st.container():
+                # Creamos el encabezado con dos columnas: autor y menú desplegable (...)
+                col_autor, col_menu = st.columns([0.85, 0.15])
+                
+                with col_autor:
+                    if post.get('ubicacion'):
+                        st.markdown(f"""
+                            <div style="font-weight:bold; color:#1E3D14; margin-bottom: 2px;">👤 {post['autor']}</div>
+                            <div style="font-size:12px; color:#666666; margin-bottom: 8px;">📍 {post['ubicacion']}</div>
+                        """, unsafe_allow_html=True)
+                    else:
+                        st.markdown(f'<div style="font-weight:bold; color:#1E3D14; margin-bottom: 8px;">👤 {post["autor"]}</div>', unsafe_allow_html=True)
+                
+                with col_menu:
+                    # AGREGADO: Menú de tres puntitos flotantes si el post pertenece al usuario actual
+                    if post["autor"] == st.session_state.usuario_actual:
+                        with st.popover("···", help="Opciones de publicación"):
+                            st.markdown("<p style='font-weight:bold; margin-bottom:2px;'>📝 Editar publicación</p>", unsafe_allow_html=True)
+                            texto_editado = st.text_area("Modificar contenido:", value=post['contenido'], key=f"edit_txt_{post['id']}")
+                            
+                            if st.button("Guardar cambios", key=f"save_{post['id']}", use_container_width=True):
+                                post['contenido'] = texto_editado
+                                st.success("¡Modificado!")
+                                st.rerun()
+                                
+                            st.markdown("<hr style='margin:10px 0;'>", unsafe_allow_html=True)
+                            
+                            if st.button("🗑️ Eliminar publicación", key=f"del_{post['id']}", type="primary", use_container_width=True):
+                                st.session_state.db_publicaciones = [p for p in st.session_state.db_publicaciones if p["id"] != post["id"]]
+                                st.toast("Publicación eliminada")
+                                st.rerun()
+
+                # Contenido del post renderizado abajo de los títulos
+                st.markdown(f"""
+                    <div class="agro-card" style="margin-top:-10px;">
+                        <p style="margin: 0; font-weight: normal;">{post['contenido']}</p>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                # Renderizado condicional si es imagen o video corto
+                if post.get("archivo") is not None:
+                    if post.get("tipo_archivo") == "video":
+                        st.video(post["archivo"])
+                    else:
+                        st.image(post["archivo"], use_column_width=True)
+                
+                st.markdown("<div style='margin-bottom:20px;'></div>", unsafe_allow_html=True)
 
     # --- MARKET ---
     elif st.session_state.pantalla_actual == "Market":
@@ -341,7 +381,7 @@ def render_dashboard():
                 st.markdown('</div>', unsafe_allow_html=True)
             st.markdown("<div style='margin-bottom:15px;'></div>", unsafe_allow_html=True)
 
-    # --- AGROIA (SABIA E INGENIERÍA AGRONÓMICA) ---
+    # --- AGROIA ---
     elif st.session_state.pantalla_actual == "AgroIA":
         st.markdown("<h4 style='color:#1E3D14;'>🔬 Consultoría de Ingeniería Agronómica de Precisión</h4>", unsafe_allow_html=True)
         for chat in st.session_state.historial_ia:
@@ -372,7 +412,7 @@ def render_dashboard():
             </div>
         """, unsafe_allow_html=True)
 
-    # --- PERFIL (DATOS EDITABLES) ---
+    # --- PERFIL ---
     elif st.session_state.pantalla_actual == "Perfil":
         st.markdown("<h4 style='color:#1E3D14;'>👤 Información del Usuario de la Red</h4>", unsafe_allow_html=True)
         
