@@ -113,6 +113,7 @@ if "historial_ia" not in st.session_state:
         {"role": "assistant", "content": "¡Saludos! Soy AgroIA, su asesor de ingeniería agronómica. Estoy listo para proveer diagnósticos técnicos, planes de dosificación de fertilizantes e intervenciones de manejo fitosanitario de precisión. ¿Qué escenario evaluamos hoy?", "imagen": None}
     ]
 
+# Lista dinámica para guardar los productos del mercado temporalmente
 if "db_market" not in st.session_state:
     st.session_state.db_market = [
         {"id": 1, "autor": "Euclimar García", "titulo": "Sacos de Fertilizante NPK", "precio": "25.00", "ubicacion": "Lara, Venezuela", "descripcion": "Alta calidad para fases de crecimiento foliar.", "imagen": None}
@@ -121,11 +122,11 @@ if "db_market" not in st.session_state:
 def responder_ia_agronomo(mensaje_usuario, tiene_archivo=False):
     msg = mensaje_usuario.lower()
     if tiene_archivo:
-        return "🔬 *Análisis Técnico de Registro Multimedia (AgroIA):* Evaluando patrones sintomatológicos en el material visual suministrado. Se observa una carga potencial de maleza densa o anomalías foliares. Se recomienda un control cultural/mecánico inicial previo al trasplante y el monitoreo de plagas asociadas al monte."
+        return "🔬 *Análisis Técnico de Registro Multimedia (AgroIA):* Evaluando patrones sintomatológicos en el material visual suministrado al nivel de ingeniería agronómica. Se observa una carga potencial de maleza densa o anomalías foliares. Se recomienda un control cultural/mecánico inicial previo al trasplante y el monitoreo de plagas asociadas al monte."
     if "fertilidad" in msg or "fertilizante" in msg or "abono" in msg or "npk" in msg or "urea" in msg:
         return "🚜 *Dictamen Agronómico (Fertilidad):* Para optimizar el rendimiento por hectárea, suspenda aplicaciones genéricas. Aplique un plan balanceado basado en análisis de suelo previo. En fase vegetativa agresiva, se prescribe dosificación fraccionada de Nitrógeno (Urea al 46%) combinada con enmiendas de Fósforo ($P_2O_5$) de alta solubilidad si el pH está fuera del rango balanceado (6.0 - 6.5)."
     if "plaga" in msg or "insecto" in msg or "enfermedad" in msg or "hongo" in msg or "monte" in msg or "maleza" in msg:
-        return "🛡️ *Estrategia Fitosanitaria (Manejo de Malezas y Suelo):* Ante la presencia de alta densidad de maleza ('mucho monte') previo a la siembra de pimentón, se sugerir realizar un desmalezado mecánico o rastreo para incorporar la materia orgánica, o evaluar una aplicación localizada de herbicida si el umbral lo requiere. Esto evitará la competencia por nutrientes y luz con las plántulas."
+        return "🛡️ *Estrategia Fitosanitaria (Manejo de Malezas y Suelo):* Ante la presencia de alta densidad de maleza ('mucho monte') previo a la siembra de pimentón, se sugiere realizar un desmalezado mecánico o rastreo para incorporar la materia orgánica, o evaluar una aplicación localizada de herbicida si el umbral lo requiere. Esto evitará la competencia por nutrientes y luz con las plántulas."
     return "📊 *Consulta Registrada por Ingeniería:* Para estructurar la prescripción técnica idónea, provea los datos del cultivo, etapa fenológica exacta, densidad de siembra y tipo de suelo predominante."
 
 # ==========================================
@@ -213,10 +214,15 @@ def render_dashboard():
         [data-testid="stAppViewContainer"] { background-color: #F7F9F6 !important; }
         .block-container { max-width: 550px !important; padding: 1.5rem 1rem !important; }
         .main-header { font-size: 34px; font-weight: 900; color: #1E3D14 !important; text-align: center; margin-top: 55px !important; margin-bottom: 15px; }
-        .agro-card { background-color: #FFFFFF; border-radius: 14px; padding: 18px; border: 1px solid #EAEAEA; margin-bottom: 5px; }
-        .agro-card p, .agro-card div { color: #333333 !important; font-size: 15px; }
-        .chat-card { border-radius: 14px; padding: 18px; border: 1px solid #EAEAEA; margin-bottom: 10px; }
+        
+        /* Asegurar letras oscuras en tarjetas de comunidad y de mercado */
+        .agro-card { background-color: #FFFFFF !important; border-radius: 14px; padding: 18px; border: 1px solid #EAEAEA; margin-bottom: 12px; color: #111111 !important; }
+        .agro-card b, .agro-card p, .agro-card div, .agro-card span { color: #111111 !important; font-size: 15px; }
+        
+        /* Modificación para asegurar letras legibles y oscuras en el chat de la IA */
+        .chat-card { background-color: #FFFFFF !important; border-radius: 14px; padding: 18px; border: 1px solid #EAEAEA; margin-bottom: 10px; color: #111111 !important; }
         .chat-card p, .chat-card span, .chat-card b, .chat-card div { color: #111111 !important; font-size: 15px !important; }
+        
         div[data-testid="stWidgetLabel"] p, label p { color: #1E3D14 !important; font-weight: bold !important; }
         h5 { color: #1E3D14 !important; font-weight: bold !important; margin-top: 10px; margin-bottom: 15px; }
         div[data-testid="stTextInput"] input, div[data-testid="stTextArea"] textarea { background-color: #ffffff !important; color: #000000 !important; border: 1px solid #cccccc !important; border-radius: 8px !important; }
@@ -262,7 +268,6 @@ def render_dashboard():
     # --- NOVEDADES ---
     if st.session_state.pantalla_actual == "Novedades":
         st.markdown("<h4 style='color:#1E3D14;'>Publicaciones de la Comunidad</h4>", unsafe_allow_html=True)
-        # (Código del muro sin alteraciones)
         with st.expander("➕ Crear Publicación", expanded=False):
             nuevo_texto = st.text_area("¿Qué está pasando en tu cultivo?", placeholder="Escribe aquí tu estado...", key=f"txt_pub_{st.session_state.pub_count}")
             pub_media = st.file_uploader("Subir foto o video (Opcional):", type=["png", "jpg", "jpeg", "mp4", "mov"])
@@ -280,27 +285,90 @@ def render_dashboard():
         for post in db_publicaciones:
             st.markdown(f'<div class="agro-card"><b>👤 {post["autor"]}</b> {f"📍 {post["ubicacion"]}" if post.get("ubicacion") else ""}<p>{post["contenido"]}</p></div>', unsafe_allow_html=True)
 
-    # --- MARKET ---
+    # --- MARKET (COMPLETADO CON SUBIDA DE FOTOS Y UBICACIÓN) ---
     elif st.session_state.pantalla_actual == "Market":
         st.markdown("<h4 style='color:#1E3D14;'>🛒 Mercado de Insumos</h4>", unsafe_allow_html=True)
+        
+        # Formulario para agregar nuevos insumos/productos
+        with st.expander("➕ Publicar un Producto para la Venta", expanded=False):
+            mkt_titulo = st.text_input("📦 Nombre del Producto / Insumo:", placeholder="Ej: Sacos de Fertilizante NPK, Semillas, etc.")
+            mkt_precio = st.text_input("💵 Precio ($):", placeholder="Ej: 25.00")
+            mkt_desc = st.text_area("📝 Descripción:", placeholder="Detalles de calidad, estado o uso recomendado...")
+            mkt_foto = st.file_uploader("📸 Adjuntar Foto del Producto:", type=["png", "jpg", "jpeg"])
+            
+            add_ubi_mkt = st.checkbox("📍 Especificar ubicación de entrega", value=True)
+            mkt_ubicacion = st.text_input("Ubicación de venta:", value=st.session_state.ubicacion_actual) if add_ubi_mkt else "No especificada"
+            
+            if st.button("Publicar Oferta 🚀", type="primary", use_container_width=True):
+                if mkt_titulo.strip() and mkt_precio.strip():
+                    nuevo_item = {
+                        "id": len(st.session_state.db_market) + 1,
+                        "autor": st.session_state.usuario_actual,
+                        "titulo": mkt_titulo.strip(),
+                        "precio": mkt_precio.strip(),
+                        "ubicacion": mkt_ubicacion.strip(),
+                        "descripcion": mkt_desc.strip(),
+                        "imagen": mkt_foto
+                    }
+                    st.session_state.db_market.insert(0, nuevo_item) # Insertar al inicio de la lista
+                    st.success("¡Producto agregado exitosamente al catálogo!")
+                    st.rerun()
+
+        # Renderizado de productos
         for item in st.session_state.db_market:
-            st.markdown(f'<div class="agro-card"><b>📦 {item["titulo"]}</b><br>{item["precio"]}$ - {item["ubicacion"]}<p>{item["descripcion"]}</p></div>', unsafe_allow_html=True)
+            st.markdown(f"""
+                <div class="agro-card">
+                    <b style="font-size:18px; color:#1E3D14 !important;">📦 {item["titulo"]}</b><br>
+                    <span style="color:#d32f2f !important; font-weight:bold; font-size:16px;">Precio: {item["precio"]}$</span> | 📍 <i>{item["ubicacion"]}</i><br>
+                    <small style="color:#777;">Vendedor: {item["autor"]}</small>
+                    <p style="margin-top:8px; font-size:15px;">{item["descripcion"]}</p>
+                </div>
+            """, unsafe_allow_html=True)
+            if item.get("imagen") is not None:
+                st.image(item["imagen"], width=200)
+            st.markdown("<div style='margin-bottom:15px;'></div>", unsafe_allow_html=True)
 
     # --- AGROIA ---
     elif st.session_state.pantalla_actual == "AgroIA":
         st.markdown("<h4 style='color:#1E3D14;'>🔬 Consultoría AgroIA</h4>", unsafe_allow_html=True)
+        
         for chat in st.session_state.historial_ia:
-            st.markdown(f'<div class="chat-card"><b>{chat["role"].upper()}:</b> {chat["content"]}</div>', unsafe_allow_html=True)
+            rol_nombre = "🤖 AGROIA" if chat["role"] == "assistant" else "👤 TÚ"
+            st.markdown(f'<div class="chat-card"><b>{rol_nombre}:</b><br>{chat["content"]}</div>', unsafe_allow_html=True)
+            if chat.get("imagen") is not None:
+                st.image(chat["imagen"], caption="Material visual bajo evaluación", width=250)
+        
+        st.markdown("<hr style='border-top:1px dashed #ccc;'>", unsafe_allow_html=True)
+        
+        st.markdown("##### Enviar consulta al Ingeniero Agrónomo Virtual")
+        foto_cultivo = st.file_uploader("📸 Adjuntar registro fotográfico del cultivo (Opcional):", type=["png", "jpg", "jpeg"], key="uploader_ia")
+        consulta_texto = st.text_input("✍️ Describa los síntomas observados o su consulta técnica:", placeholder="Ej: Tengo mucho monte en el cultivo o requiero plan de NPK...", key="input_texto_ia")
+        
+        if st.button("Enviar a Consultoría 🚀", type="primary", use_container_width=True):
+            if consulta_texto.strip() or foto_cultivo is not None:
+                tiene_foto = foto_cultivo is not None
+                texto_usuario = consulta_texto if consulta_texto.strip() else "Se adjunta material fotográfico para evaluación diagnóstica."
+                
+                st.session_state.historial_ia.append({
+                    "role": "user",
+                    "content": texto_usuario,
+                    "imagen": foto_cultivo
+                })
+                
+                respuesta = responder_ia_agronomo(texto_usuario, tiene_archivo=tiene_foto)
+                st.session_state.historial_ia.append({
+                    "role": "assistant",
+                    "content": respuesta,
+                    "imagen": None
+                })
+                st.rerun()
 
-    # --- 🌤️ CLIMA (ESTACIÓN METEOROLÓGICA COMPLETADA SEGÚN IMAGEN_8.PNG) ---
+    # --- 🌤️ CLIMA ---
     elif st.session_state.pantalla_actual == "Clima":
         st.markdown("<h4 style='color:#1E3D14;'>🌤️ Estación Meteorológica</h4>", unsafe_allow_html=True)
+        temperatura_fija = 28
+        humedad_simulada = 65
         
-        # Simulación de variables en tiempo real basadas en la captura
-        temperatura_fija = 28  # Correspondiente al valor exacto de la captura
-        humedad_simulada = 65  # Porcentaje agrometeorológico de referencia para Lara
-        
-        # Renderizado de la tarjeta principal con los datos solicitados
         st.markdown(f"""
             <div class="weather-container">
                 <div class="weather-title">📍 {st.session_state.ubicacion_actual}</div>
@@ -311,7 +379,6 @@ def render_dashboard():
                 </div>
         """, unsafe_allow_html=True)
         
-        # Algoritmo de toma de decisiones agrícolas
         if temperatura_fija >= 24 and temperatura_fija <= 30 and humedad_simulada >= 50:
             st.markdown("""
                 <div class="weather-alert">
