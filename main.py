@@ -133,7 +133,7 @@ def responder_ia_agronomo(mensaje_usuario, tiene_archivo=False):
         return "🚜 *Dictamen Agronómico (Fertilidad):* Para optimizar el rendimiento por hectárea, suspenda aplicaciones genéricas. Aplique un plan balanceado basado en análisis de suelo previo. En fase vegetativa agresiva, se prescribe dosificación fraccionada de Nitrógeno (Urea al 46%) combinada con enmiendas de Fósforo ($P_2O_5$) de alta solubilidad si el pH está fuera del rango balanceado (6.0 - 6.5)."
     if "plaga" in msg or "insecto" in msg or "enfermedad" in msg or "hongo" in msg or "monte" in msg or "maleza" in msg:
         return "🛡️ *Estrategia Fitosanitaria (Manejo de Malezas y Suelo):* Ante la presencia de alta densidad de maleza ('mucho monte') previo a la siembra de pimentón, se sugiere realizar un desmalezado mecánico o rastreo para incorporar la materia orgánica, o evaluar una application localizada de herbicida si el umbral lo requiere. Esto evitará la competencia por nutrientes y luz con las plántulas."
-    return "📊 *Consulta Registrada por Ingeniería:* Para estructurar la prescripción técnica idónea, provea los datos del cultivo, etapa fenológica exacta, densidad de siembra y tipo de suelo predominante."
+    return "📊 *Consulta Registrada por Ingeniería:* Para estructurar la prescripción técnica idónea, provea los datos del cultivo, etapa fenológica exacta, density de siembra y tipo de suelo predominante."
 
 # ==========================================
 # 🚪 PANEL DE AUTENTICACIÓN
@@ -230,12 +230,24 @@ def render_dashboard():
         div[data-testid="stWidgetLabel"] p, label p { color: #1E3D14 !important; font-weight: bold !important; }
         h5 { color: #1E3D14 !important; font-weight: bold !important; margin-top: 10px; margin-bottom: 15px; }
         
-        /* Asegurar que las cajas de entrada tengan texto negro legible */
+        /* REFUERZO DE COLOR NEGRO EN TODOS LOS CAMPOS DE ENTRADA Y PLACEHOLDERS */
+        input[type="text"], input[type="number"], textarea, .st-c0, .st-b8 {
+            color: #000000 !important;
+            -webkit-text-fill-color: #000000 !important;
+        }
+        
         div[data-testid="stTextInput"] input, div[data-testid="stTextArea"] textarea, div[data-testid="stNumberInput"] input { 
             background-color: #ffffff !important; 
             color: #000000 !important; 
+            -webkit-text-fill-color: #000000 !important;
             border: 1px solid #cccccc !important; 
             border-radius: 8px !important; 
+        }
+        
+        /* Estilo para los placeholders o textos guía */
+        ::placeholder {
+            color: #555555 !important;
+            opacity: 1 !important;
         }
         
         div[data-testid="stFileUploader"] section { background-color: #ffffff !important; border: 1px dashed #2e6d38 !important; border-radius: 10px !important; padding: 15px !important; }
@@ -361,7 +373,7 @@ def render_dashboard():
         with st.expander("➕ Publicar un Producto para la Venta", expanded=False):
             mkt_titulo = st.text_input("📦 Nombre del Producto / Insumo:", placeholder="Ej: Sacos de Fertilizante NPK, Semillas, etc.")
             
-            # Restricción estricta con st.number_input (ahora con texto negro legible mediante CSS)
+            # Campo numérico con inyección fuerte de CSS de texto negro
             mkt_precio = st.number_input("💵 Precio ($):", min_value=0.0, step=0.01, format="%.2f")
             
             mkt_desc = st.text_area("📝 Descripción:", placeholder="Detalles de calidad, estado o uso recomendado...")
@@ -435,12 +447,11 @@ def render_dashboard():
                 })
                 st.rerun()
 
-    # --- 🌤️ CLIMA (CON VARIACIÓN DEL TIEMPO REALISTA) ---
+    # --- 🌤️ CLIMA ---
     elif st.session_state.pantalla_actual == "Clima":
         st.markdown("<h4 style='color:#1E3D14;'>🌤️ Estación Meteorológica</h4>", unsafe_allow_html=True)
         
-        # Simulación dinámica usando la semilla del tiempo actual para generar pequeños cambios continuos
-        random.seed(int(time.time()) // 60) # Cambia el valor sutilmente cada minuto
+        random.seed(int(time.time()) // 60) 
         temperatura_dinamica = round(random.uniform(26.0, 31.5), 1)
         humedad_dinamica = random.randint(58, 72)
         
