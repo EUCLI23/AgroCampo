@@ -102,7 +102,7 @@ if "pantalla_auth" not in st.session_state:
     st.session_state.pantalla_auth = "login"
 
 if "pub_count" not in st.session_state:
-    st.session_state.pub_count = 0
+    st.session_state.pub_count = 10
 if "mkt_count" not in st.session_state:
     st.session_state.mkt_count = 0
 if "chat_count" not in st.session_state:
@@ -131,7 +131,7 @@ def responder_ia_agronomo(mensaje_usuario, tiene_archivo=False):
     if "fertilidad" in msg or "fertilizante" in msg or "abono" in msg or "npk" in msg or "urea" in msg:
         return "🚜 *Dictamen Agronómico (Fertilidad):* Para optimizar el rendimiento por hectárea, suspenda aplicaciones genéricas. Aplique un plan balanceado basado en análisis de suelo previo. En fase vegetativa agresiva, se prescribe dosificación fraccionada de Nitrógeno (Urea al 46%) combinada con enmiendas de Fósforo ($P_2O_5$) de alta solubilidad si el pH está fuera del rango balanceado (6.0 - 6.5)."
     if "plaga" in msg or "insecto" in msg or "enfermedad" in msg or "hongo" in msg or "monte" in msg or "maleza" in msg:
-        return "🛡️ *Estrategia Fitosanitaria (Manejo de Malezas y Suelo):* Ante la presencia de alta densidad de maleza ('mucho monte') previo a la siembra de pimentón, se sugiere realizar un desmalezado mecánico o rastreo para incorporar la materia orgánica, o evaluar una aplicación localizada de herbicida si el umbral lo requiere. Esto evitará la competencia por nutrientes y luz con las plántulas."
+        return "🛡️ *Estrategia Fitosanitaria (Manejo de Malezas y Suelo):* Ante la presencia de alta densidad de maleza ('mucho monte') previo a la siembra de pimentón, se sugiere realizar un desmalezado mecánico o rastreo para incorporar la materia orgánica, o evaluar una application localizada de herbicida si el umbral lo requiere. Esto evitará la competencia por nutrientes y luz con las plántulas."
     return "📊 *Consulta Registrada por Ingeniería:* Para estructurar la prescripción técnica idónea, provea los datos del cultivo, etapa fenológica exacta, densidad de siembra y tipo de suelo predominante."
 
 # ==========================================
@@ -232,9 +232,21 @@ def render_dashboard():
         div[data-testid="stFileUploader"] section { background-color: #ffffff !important; border: 1px dashed #2e6d38 !important; border-radius: 10px !important; padding: 15px !important; }
         div[data-testid="stFileUploader"] section div[data-testid="stMarkdownContainer"] p, div[data-testid="stFileUploader"] small, div[data-testid="stFileUploader"] span { color: #111111 !important; font-weight: 500 !important; }
         div[data-testid="stFileUploader"] button { background-color: #2e6d38 !important; color: #ffffff !important; border: 1px solid #1e4d2b !important; border-radius: 8px !important; font-weight: bold !important; padding: 6px 14px !important; }
-        div[data-testid="stExpander"] details summary { background-color: #2e6d38 !important; border-radius: 8px !important; }
-        div[data-testid="stExpander"] details summary p { color: #ffffff !important; font-weight: bold !important; }
-        div[data-testid="stExpander"] details summary svg { color: #ffffff !important; fill: #ffffff !important; }
+        
+        /* Estilos específicos para los tres puntos flotantes */
+        .btn-tres-puntos button {
+            background: transparent !important;
+            color: #555555 !important;
+            border: none !important;
+            font-size: 22px !important;
+            padding: 0px !important;
+            margin: 0px !important;
+            float: right;
+        }
+        .btn-tres-puntos button:hover {
+            color: #1E3D14 !important;
+        }
+        
         .menu-horizontal-container { display: flex !important; flex-direction: row !important; justify-content: space-between !important; width: 100% !important; gap: 4px !important; margin-bottom: 15px !important; }
         .menu-horizontal-container div.element-container, .menu-horizontal-container div.stButton { flex: 1 1 0% !important; width: auto !important; margin: 0 !important; }
         div.stButton > button { background-color: #2e6d38 !important; color: #ffffff !important; border-radius: 8px !important; border: 1px solid #1e4d2b !important; font-weight: bold !important; font-size: 12px !important; padding: 10px 1px !important; width: 100% !important; }
@@ -277,12 +289,11 @@ def render_dashboard():
             
             if st.button("Publicar", type="primary", use_container_width=True):
                 if nuevo_texto.strip() or pub_media is not None:
-                    # Guardamos en la Base de Datos el texto de la publicación
+                    id_nueva = random.randint(100, 9999)
                     guardar_publicacion_db(st.session_state.usuario_actual, nuevo_texto, pub_ubicacion)
                     
-                    # Guardamos de forma local en la sesión para poder renderizar la FOTO cargada
                     nueva_noticia = {
-                        "id": st.session_state.pub_count,
+                        "id": id_nueva,
                         "autor": st.session_state.usuario_actual,
                         "contenido": nuevo_texto,
                         "ubicacion": pub_ubicacion,
@@ -292,12 +303,51 @@ def render_dashboard():
                     st.session_state.pub_count += 1
                     st.rerun()
 
-        # Renderizar la lista unificada para ver los textos y las imágenes subidas
-        for post in st.session_state.db_novedades_locales:
-            st.markdown(f'<div class="agro-card"><b>👤 {post["autor"]}</b> {f"📍 {post["ubicacion"]}" if post.get("ubicacion") else ""}<p>{post["contenido"]}</p></div>', unsafe_allow_html=True)
-            if post.get("imagen") is not None:
-                st.image(post["imagen"], width=350)
-                st.markdown("<div style='margin-bottom:15px;'></div>", unsafe_allow_html=True)
+        # Renderizar la lista unificada
+        for indice, post in enumerate(st.session_state.db_novedades_locales):
+            # Creamos dos columnas: una para el contenido y otra pequeña a la derecha para el botón de tres puntos
+            col_contenido, col_puntos = st.columns([0.9, 0.1])
+            
+            with col_contenido:
+                st.markdown(f'<div class="agro-card"><b>👤 {post["autor"]}</b> {f"📍 {post["ubicacion"]}" if post.get("ubicacion") else ""}<p>{post["contenido"]}</p></div>', unsafe_allow_html=True)
+                if post.get("imagen") is not None:
+                    st.image(post["imagen"], width=350)
+            
+            with col_puntos:
+                # Solo mostramos el menú si eres el dueño de la publicación
+                abrir_opciones = False
+                if post["autor"] == st.session_state.usuario_actual:
+                    st.markdown('<div class="btn-tres-puntos">', unsafe_allow_html=True)
+                    if st.button("⋮", key=f"puntos_{post['id']}_{indice}"):
+                        # Guardamos en sesión qué publicación tiene activo el menú de edición
+                        key_menu = f"menu_activo_{post['id']}"
+                        st.session_state[key_menu] = not st.session_state.get(key_menu, False)
+                    st.markdown('</div>', unsafe_allow_html=True)
+                    abrir_opciones = st.session_state.get(f"menu_activo_{post['id']}", False)
+
+            # Si el usuario presionó los tres puntos, mostramos el panel de edición justo abajo
+            if abrir_opciones:
+                st.markdown("<div style='background-color:#f0f2f6; padding:12px; border-radius:10px; border-left:4px solid #2e6d38; margin-top:-10px; margin-bottom:15px;'>", unsafe_allow_html=True)
+                txt_edicion = st.text_input("Editar texto de la publicación:", value=post["contenido"], key=f"input_edit_{post['id']}_{indice}")
+                
+                col_btn_edit, col_btn_elim = st.columns(2)
+                with col_btn_edit:
+                    if st.button("Guardar Cambios ✏️", key=f"btn_edit_{post['id']}_{indice}", use_container_width=True):
+                        editar_publicacion_db(post["id"], txt_edicion)
+                        post["contenido"] = txt_edicion
+                        st.session_state[f"menu_activo_{post['id']}"] = False
+                        st.toast("¡Publicación actualizada!")
+                        st.rerun()
+                with col_btn_elim:
+                    if st.button("Eliminar Estado 🗑️", key=f"btn_elim_{post['id']}_{indice}", use_container_width=True):
+                        eliminar_publicacion_db(post["id"])
+                        st.session_state.db_novedades_locales.pop(indice)
+                        st.session_state[f"menu_activo_{post['id']}"] = False
+                        st.toast("¡Publicación eliminada!")
+                        st.rerun()
+                st.markdown("</div>", unsafe_allow_html=True)
+                
+            st.markdown("<div style='margin-bottom:15px;'></div>", unsafe_allow_html=True)
 
     # --- MARKET ---
     elif st.session_state.pantalla_actual == "Market":
