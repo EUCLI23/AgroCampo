@@ -108,12 +108,17 @@ if "mkt_count" not in st.session_state:
 if "chat_count" not in st.session_state:
     st.session_state.chat_count = 0  
 
+# Estructura temporal para novedades con soporte de fotos en vivo
+if "db_novedades_locales" not in st.session_state:
+    st.session_state.db_novedades_locales = [
+        {"id": 1, "autor": "Euclimar García", "contenido": "Iniciando la siembra de maíz en la zona alta.", "ubicacion": "Lara, Venezuela", "imagen": None}
+    ]
+
 if "historial_ia" not in st.session_state:
     st.session_state.historial_ia = [
         {"role": "assistant", "content": "¡Saludos! Soy AgroIA, su asesor de ingeniería agronómica. Estoy listo para proveer diagnósticos técnicos, planes de dosificación de fertilizantes e intervenciones de manejo fitosanitario de precisión. ¿Qué escenario evaluamos hoy?", "imagen": None}
     ]
 
-# Lista dinámica para guardar los productos del mercado temporalmente
 if "db_market" not in st.session_state:
     st.session_state.db_market = [
         {"id": 1, "autor": "Euclimar García", "titulo": "Sacos de Fertilizante NPK", "precio": "25.00", "ubicacion": "Lara, Venezuela", "descripcion": "Alta calidad para fases de crecimiento foliar.", "imagen": None}
@@ -215,11 +220,9 @@ def render_dashboard():
         .block-container { max-width: 550px !important; padding: 1.5rem 1rem !important; }
         .main-header { font-size: 34px; font-weight: 900; color: #1E3D14 !important; text-align: center; margin-top: 55px !important; margin-bottom: 15px; }
         
-        /* Asegurar letras oscuras en tarjetas de comunidad y de mercado */
-        .agro-card { background-color: #FFFFFF !important; border-radius: 14px; padding: 18px; border: 1px solid #EAEAEA; margin-bottom: 12px; color: #111111 !important; }
+        .agro-card { background-color: #FFFFFF !important; border-radius: 14px; padding: 18px; border: 1px solid #EAEAEA; margin-bottom: 5px; color: #111111 !important; }
         .agro-card b, .agro-card p, .agro-card div, .agro-card span { color: #111111 !important; font-size: 15px; }
         
-        /* Modificación para asegurar letras legibles y oscuras en el chat de la IA */
         .chat-card { background-color: #FFFFFF !important; border-radius: 14px; padding: 18px; border: 1px solid #EAEAEA; margin-bottom: 10px; color: #111111 !important; }
         .chat-card p, .chat-card span, .chat-card b, .chat-card div { color: #111111 !important; font-size: 15px !important; }
         
@@ -236,9 +239,7 @@ def render_dashboard():
         .menu-horizontal-container div.element-container, .menu-horizontal-container div.stButton { flex: 1 1 0% !important; width: auto !important; margin: 0 !important; }
         div.stButton > button { background-color: #2e6d38 !important; color: #ffffff !important; border-radius: 8px !important; border: 1px solid #1e4d2b !important; font-weight: bold !important; font-size: 12px !important; padding: 10px 1px !important; width: 100% !important; }
         div.stButton > button:hover { background-color: #1e4d2b !important; }
-        div[data-testid="stPopover"] > button { background-color: transparent !important; color: #777777 !important; border: none !important; font-size: 18px !important; padding: 0px !important; font-weight: bold !important; float: right; margin-top: -10px; }
         
-        /* Estilos específicos de la Tarjeta de Clima */
         .weather-container { background-color: #e3f2fd !important; border-radius: 16px; padding: 22px; border: 1px solid #bbdefb; margin-top: 10px; }
         .weather-title { font-size: 24px; font-weight: bold; color: #0d47a1 !important; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
         .weather-temp { font-size: 46px; font-weight: 900; color: #1565c0 !important; margin: 0; line-height: 1; }
@@ -273,23 +274,35 @@ def render_dashboard():
             pub_media = st.file_uploader("Subir foto o video (Opcional):", type=["png", "jpg", "jpeg", "mp4", "mov"])
             add_ubi = st.checkbox("📍 Agregar ubicación geográfica")
             pub_ubicacion = st.text_input("Ubicación:", placeholder="Ej. Lara, Venezuela") if add_ubi else ""
+            
             if st.button("Publicar", type="primary", use_container_width=True):
                 if nuevo_texto.strip() or pub_media is not None:
+                    # Guardamos en la Base de Datos el texto de la publicación
                     guardar_publicacion_db(st.session_state.usuario_actual, nuevo_texto, pub_ubicacion)
+                    
+                    # Guardamos de forma local en la sesión para poder renderizar la FOTO cargada
+                    nueva_noticia = {
+                        "id": st.session_state.pub_count,
+                        "autor": st.session_state.usuario_actual,
+                        "contenido": nuevo_texto,
+                        "ubicacion": pub_ubicacion,
+                        "imagen": pub_media
+                    }
+                    st.session_state.db_novedades_locales.insert(0, nueva_noticia)
                     st.session_state.pub_count += 1
                     st.rerun()
 
-        db_publicaciones = listar_publicaciones_db()
-        if not db_publicaciones:
-            db_publicaciones = [{"id": -1, "autor": "Euclimar García", "contenido": "Iniciando la siembra de maíz en la zona alta.", "ubicacion": "Lara, Venezuela"}]
-        for post in db_publicaciones:
+        # Renderizar la lista unificada para ver los textos y las imágenes subidas
+        for post in st.session_state.db_novedades_locales:
             st.markdown(f'<div class="agro-card"><b>👤 {post["autor"]}</b> {f"📍 {post["ubicacion"]}" if post.get("ubicacion") else ""}<p>{post["contenido"]}</p></div>', unsafe_allow_html=True)
+            if post.get("imagen") is not None:
+                st.image(post["imagen"], width=350)
+                st.markdown("<div style='margin-bottom:15px;'></div>", unsafe_allow_html=True)
 
-    # --- MARKET (COMPLETADO CON SUBIDA DE FOTOS Y UBICACIÓN) ---
+    # --- MARKET ---
     elif st.session_state.pantalla_actual == "Market":
         st.markdown("<h4 style='color:#1E3D14;'>🛒 Mercado de Insumos</h4>", unsafe_allow_html=True)
         
-        # Formulario para agregar nuevos insumos/productos
         with st.expander("➕ Publicar un Producto para la Venta", expanded=False):
             mkt_titulo = st.text_input("📦 Nombre del Producto / Insumo:", placeholder="Ej: Sacos de Fertilizante NPK, Semillas, etc.")
             mkt_precio = st.text_input("💵 Precio ($):", placeholder="Ej: 25.00")
@@ -310,11 +323,10 @@ def render_dashboard():
                         "descripcion": mkt_desc.strip(),
                         "imagen": mkt_foto
                     }
-                    st.session_state.db_market.insert(0, nuevo_item) # Insertar al inicio de la lista
+                    st.session_state.db_market.insert(0, nuevo_item)
                     st.success("¡Producto agregado exitosamente al catálogo!")
                     st.rerun()
 
-        # Renderizado de productos
         for item in st.session_state.db_market:
             st.markdown(f"""
                 <div class="agro-card">
