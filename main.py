@@ -305,7 +305,6 @@ def render_dashboard():
 
         # Renderizar la lista unificada
         for indice, post in enumerate(st.session_state.db_novedades_locales):
-            # Creamos dos columnas: una para el contenido y otra pequeña a la derecha para el botón de tres puntos
             col_contenido, col_puntos = st.columns([0.9, 0.1])
             
             with col_contenido:
@@ -314,18 +313,15 @@ def render_dashboard():
                     st.image(post["imagen"], width=350)
             
             with col_puntos:
-                # Solo mostramos el menú si eres el dueño de la publicación
                 abrir_opciones = False
                 if post["autor"] == st.session_state.usuario_actual:
                     st.markdown('<div class="btn-tres-puntos">', unsafe_allow_html=True)
                     if st.button("⋮", key=f"puntos_{post['id']}_{indice}"):
-                        # Guardamos en sesión qué publicación tiene activo el menú de edición
                         key_menu = f"menu_activo_{post['id']}"
                         st.session_state[key_menu] = not st.session_state.get(key_menu, False)
                     st.markdown('</div>', unsafe_allow_html=True)
                     abrir_opciones = st.session_state.get(f"menu_activo_{post['id']}", False)
 
-            # Si el usuario presionó los tres puntos, mostramos el panel de edición justo abajo
             if abrir_opciones:
                 st.markdown("<div style='background-color:#f0f2f6; padding:12px; border-radius:10px; border-left:4px solid #2e6d38; margin-top:-10px; margin-bottom:15px;'>", unsafe_allow_html=True)
                 txt_edicion = st.text_input("Editar texto de la publicación:", value=post["contenido"], key=f"input_edit_{post['id']}_{indice}")
@@ -355,7 +351,10 @@ def render_dashboard():
         
         with st.expander("➕ Publicar un Producto para la Venta", expanded=False):
             mkt_titulo = st.text_input("📦 Nombre del Producto / Insumo:", placeholder="Ej: Sacos de Fertilizante NPK, Semillas, etc.")
-            mkt_precio = st.text_input("💵 Precio ($):", placeholder="Ej: 25.00")
+            
+            # Restricción estricta de solo números mediante st.number_input
+            mkt_precio = st.number_input("💵 Precio ($):", min_value=0.0, step=0.01, format="%.2f")
+            
             mkt_desc = st.text_area("📝 Descripción:", placeholder="Detalles de calidad, estado o uso recomendado...")
             mkt_foto = st.file_uploader("📸 Adjuntar Foto del Producto:", type=["png", "jpg", "jpeg"])
             
@@ -363,12 +362,12 @@ def render_dashboard():
             mkt_ubicacion = st.text_input("Ubicación de venta:", value=st.session_state.ubicacion_actual) if add_ubi_mkt else "No especificada"
             
             if st.button("Publicar Oferta 🚀", type="primary", use_container_width=True):
-                if mkt_titulo.strip() and mkt_precio.strip():
+                if mkt_titulo.strip() and mkt_precio > 0:
                     nuevo_item = {
                         "id": len(st.session_state.db_market) + 1,
                         "autor": st.session_state.usuario_actual,
                         "titulo": mkt_titulo.strip(),
-                        "precio": mkt_precio.strip(),
+                        "precio": f"{mkt_precio:.2f}",
                         "ubicacion": mkt_ubicacion.strip(),
                         "descripcion": mkt_desc.strip(),
                         "imagen": mkt_foto
@@ -386,8 +385,11 @@ def render_dashboard():
                     <p style="margin-top:8px; font-size:15px;">{item["descripcion"]}</p>
                 </div>
             """, unsafe_allow_html=True)
+            
+            # Renderizado correcto y fluido de la foto del producto si existe
             if item.get("imagen") is not None:
-                st.image(item["imagen"], width=200)
+                st.image(item["imagen"], use_container_width=True)
+                
             st.markdown("<div style='margin-bottom:15px;'></div>", unsafe_allow_html=True)
 
     # --- AGROIA ---
@@ -462,7 +464,7 @@ def render_dashboard():
     elif st.session_state.pantalla_actual == "Perfil":
         st.markdown("<h4 style='color:#1E3D14;'>👤 Perfil del Usuario</h4>", unsafe_allow_html=True)
         with st.form("edit_profile_form"):
-            st.markdown("<h5>Modificar Datos Personales</h5>", unsafe_allow_html=True)
+            st.markdown("##### Modificar Datos Personales nudge")
             nuevo_nombre = st.text_input("Nombre de Productor:", value=st.session_state.usuario_actual)
             nueva_ubi = st.text_input("Ubicación / Región Agrícola:", value=st.session_state.ubicacion_actual)
             
