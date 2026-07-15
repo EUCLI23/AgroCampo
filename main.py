@@ -1,6 +1,7 @@
 import streamlit as st
 import mysql.connector
 import random
+import time
 
 # Configuración de página
 st.set_page_config(page_title="AgroCampo", page_icon="🌱", layout="centered")
@@ -228,7 +229,15 @@ def render_dashboard():
         
         div[data-testid="stWidgetLabel"] p, label p { color: #1E3D14 !important; font-weight: bold !important; }
         h5 { color: #1E3D14 !important; font-weight: bold !important; margin-top: 10px; margin-bottom: 15px; }
-        div[data-testid="stTextInput"] input, div[data-testid="stTextArea"] textarea { background-color: #ffffff !important; color: #000000 !important; border: 1px solid #cccccc !important; border-radius: 8px !important; }
+        
+        /* Asegurar que las cajas de entrada tengan texto negro legible */
+        div[data-testid="stTextInput"] input, div[data-testid="stTextArea"] textarea, div[data-testid="stNumberInput"] input { 
+            background-color: #ffffff !important; 
+            color: #000000 !important; 
+            border: 1px solid #cccccc !important; 
+            border-radius: 8px !important; 
+        }
+        
         div[data-testid="stFileUploader"] section { background-color: #ffffff !important; border: 1px dashed #2e6d38 !important; border-radius: 10px !important; padding: 15px !important; }
         div[data-testid="stFileUploader"] section div[data-testid="stMarkdownContainer"] p, div[data-testid="stFileUploader"] small, div[data-testid="stFileUploader"] span { color: #111111 !important; font-weight: 500 !important; }
         div[data-testid="stFileUploader"] button { background-color: #2e6d38 !important; color: #ffffff !important; border: 1px solid #1e4d2b !important; border-radius: 8px !important; font-weight: bold !important; padding: 6px 14px !important; }
@@ -352,7 +361,7 @@ def render_dashboard():
         with st.expander("➕ Publicar un Producto para la Venta", expanded=False):
             mkt_titulo = st.text_input("📦 Nombre del Producto / Insumo:", placeholder="Ej: Sacos de Fertilizante NPK, Semillas, etc.")
             
-            # Restricción estricta de solo números mediante st.number_input
+            # Restricción estricta con st.number_input (ahora con texto negro legible mediante CSS)
             mkt_precio = st.number_input("💵 Precio ($):", min_value=0.0, step=0.01, format="%.2f")
             
             mkt_desc = st.text_area("📝 Descripción:", placeholder="Detalles de calidad, estado o uso recomendado...")
@@ -386,7 +395,6 @@ def render_dashboard():
                 </div>
             """, unsafe_allow_html=True)
             
-            # Renderizado correcto y fluido de la foto del producto si existe
             if item.get("imagen") is not None:
                 st.image(item["imagen"], use_container_width=True)
                 
@@ -427,34 +435,37 @@ def render_dashboard():
                 })
                 st.rerun()
 
-    # --- 🌤️ CLIMA ---
+    # --- 🌤️ CLIMA (CON VARIACIÓN DEL TIEMPO REALISTA) ---
     elif st.session_state.pantalla_actual == "Clima":
         st.markdown("<h4 style='color:#1E3D14;'>🌤️ Estación Meteorológica</h4>", unsafe_allow_html=True)
-        temperatura_fija = 28
-        humedad_simulada = 65
+        
+        # Simulación dinámica usando la semilla del tiempo actual para generar pequeños cambios continuos
+        random.seed(int(time.time()) // 60) # Cambia el valor sutilmente cada minuto
+        temperatura_dinamica = round(random.uniform(26.0, 31.5), 1)
+        humedad_dinamica = random.randint(58, 72)
         
         st.markdown(f"""
             <div class="weather-container">
                 <div class="weather-title">📍 {st.session_state.ubicacion_actual}</div>
-                <div class="weather-temp">{temperatura_fija}°C</div>
+                <div class="weather-temp">{temperatura_dinamica}°C</div>
                 <div class="weather-details">
-                    💧 Humedad Relativa: <b>{humedad_simulada}%</b><br>
-                    💨 Estado del Tiempo: <b>Mayormente Soleado / Óptimo</b>
+                    💧 Humedad Relativa: <b>{humedad_dinamica}%</b><br>
+                    💨 Estado del Tiempo: <b>Condiciones cambiantes en tiempo real</b>
                 </div>
         """, unsafe_allow_html=True)
         
-        if temperatura_fija >= 24 and temperatura_fija <= 30 and humedad_simulada >= 50:
+        if temperatura_dinamica >= 24 and temperatura_dinamica <= 30:
             st.markdown("""
                 <div class="weather-alert">
                     📢 <b>RECOMENDACIÓN TÉCNICA:</b><br>
-                    El ambiente se encuentra <b>APTO PARA SEMBRAR Y REGAR</b>. Las condiciones de evapotranspiración son estables. Se aconseja realizar labores de campo antes del incremento térmico del mediodía.
+                    El ambiente se encuentra <b>APTO PARA SEMBRAR Y REGAR</b>. Las condiciones de evapotranspiración son estables. Se aconseja realizar labores de campo antes del incremento térmico de la tarde.
                 </div>
             """, unsafe_allow_html=True)
         else:
             st.markdown("""
                 <div class="weather-alert">
                     📢 <b>RECOMENDACIÓN TÉCNICA:</b><br>
-                    Ambiente caluroso o seco. Monitorear el estrés hídrico. Apto principalmente para labores de control mecánico o preparación del suelo.
+                    Pico térmico elevado observado. Monitorear el estrés hídrico de las plantas. Apto principalmente para labores de control mecánico, preparación de abonos o mantenimiento estructural.
                 </div>
             """, unsafe_allow_html=True)
             
@@ -464,7 +475,7 @@ def render_dashboard():
     elif st.session_state.pantalla_actual == "Perfil":
         st.markdown("<h4 style='color:#1E3D14;'>👤 Perfil del Usuario</h4>", unsafe_allow_html=True)
         with st.form("edit_profile_form"):
-            st.markdown("##### Modificar Datos Personales nudge")
+            st.markdown("##### Modificar Datos Personales")
             nuevo_nombre = st.text_input("Nombre de Productor:", value=st.session_state.usuario_actual)
             nueva_ubi = st.text_input("Ubicación / Región Agrícola:", value=st.session_state.ubicacion_actual)
             
