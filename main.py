@@ -133,7 +133,7 @@ def responder_ia_agronomo(mensaje_usuario, tiene_archivo=False):
         return "🚜 *Dictamen Agronómico (Fertilidad):* Para optimizar el rendimiento por hectárea, suspenda aplicaciones genéricas. Aplique un plan balanceado basado en análisis de suelo previo. En fase vegetativa agresiva, se prescribe dosificación fraccionada de Nitrógeno (Urea al 46%) combinada con enmiendas de Fósforo ($P_2O_5$) de alta solubilidad si el pH está fuera del rango balanceado (6.0 - 6.5)."
     if "plaga" in msg or "insecto" in msg or "enfermedad" in msg or "hongo" in msg or "monte" in msg or "maleza" in msg:
         return "🛡️ *Estrategia Fitosanitaria (Manejo de Malezas y Suelo):* Ante la presencia de alta densidad de maleza ('mucho monte') previo a la siembra de pimentón, se sugiere realizar un desmalezado mecánico o rastreo para incorporar la materia orgánica, o evaluar una application localizada de herbicida si el umbral lo requiere. Esto evitará la competencia por nutrientes y luz con las plántulas."
-    return "📊 *Consulta Registrada por Ingeniería:* Para estructurar la prescripción técnica idónea, provea los datos del cultivo, etapa fenológica exacta, density de siembra y tipo de suelo predominante."
+    return "📊 *Consulta Registrada por Ingeniería:* Para estructurar la prescripción técnica idónea, provea los datos del cultivo, etapa fenológica exacta, densidad de siembra y tipo de suelo predominante."
 
 # ==========================================
 # 🚪 PANEL DE AUTENTICACIÓN
@@ -230,7 +230,12 @@ def render_dashboard():
         div[data-testid="stWidgetLabel"] p, label p { color: #1E3D14 !important; font-weight: bold !important; }
         h5 { color: #1E3D14 !important; font-weight: bold !important; margin-top: 10px; margin-bottom: 15px; }
         
-        /* REFUERZO DE COLOR NEGRO EN TODOS LOS CAMPOS DE ENTRADA Y PLACEHOLDERS */
+        /* CORRECCIÓN FINAL PARA EXPANDERS Y LETRAS EN ENTRADAS */
+        details summary p, .stDetails summary p, [data-testid="stExpander"] summary p {
+            color: #000000 !important;
+            font-weight: bold !important;
+        }
+        
         input[type="text"], input[type="number"], textarea, .st-c0, .st-b8 {
             color: #000000 !important;
             -webkit-text-fill-color: #000000 !important;
@@ -244,7 +249,6 @@ def render_dashboard():
             border-radius: 8px !important; 
         }
         
-        /* Estilo para los placeholders o textos guía */
         ::placeholder {
             color: #555555 !important;
             opacity: 1 !important;
@@ -254,7 +258,6 @@ def render_dashboard():
         div[data-testid="stFileUploader"] section div[data-testid="stMarkdownContainer"] p, div[data-testid="stFileUploader"] small, div[data-testid="stFileUploader"] span { color: #111111 !important; font-weight: 500 !important; }
         div[data-testid="stFileUploader"] button { background-color: #2e6d38 !important; color: #ffffff !important; border: 1px solid #1e4d2b !important; border-radius: 8px !important; font-weight: bold !important; padding: 6px 14px !important; }
         
-        /* Estilos específicos para los tres puntos flotantes */
         .btn-tres-puntos button {
             background: transparent !important;
             color: #555555 !important;
@@ -264,9 +267,7 @@ def render_dashboard():
             margin: 0px !important;
             float: right;
         }
-        .btn-tres-puntos button:hover {
-            color: #1E3D14 !important;
-        }
+        .btn-tres-puntos button:hover { color: #1E3D14 !important; }
         
         .menu-horizontal-container { display: flex !important; flex-direction: row !important; justify-content: space-between !important; width: 100% !important; gap: 4px !important; margin-bottom: 15px !important; }
         .menu-horizontal-container div.element-container, .menu-horizontal-container div.stButton { flex: 1 1 0% !important; width: auto !important; margin: 0 !important; }
@@ -324,10 +325,8 @@ def render_dashboard():
                     st.session_state.pub_count += 1
                     st.rerun()
 
-        # Renderizar la lista unificada
         for indice, post in enumerate(st.session_state.db_novedades_locales):
             col_contenido, col_puntos = st.columns([0.9, 0.1])
-            
             with col_contenido:
                 st.markdown(f'<div class="agro-card"><b>👤 {post["autor"]}</b> {f"📍 {post["ubicacion"]}" if post.get("ubicacion") else ""}<p>{post["contenido"]}</p></div>', unsafe_allow_html=True)
                 if post.get("imagen") is not None:
@@ -372,10 +371,7 @@ def render_dashboard():
         
         with st.expander("➕ Publicar un Producto para la Venta", expanded=False):
             mkt_titulo = st.text_input("📦 Nombre del Producto / Insumo:", placeholder="Ej: Sacos de Fertilizante NPK, Semillas, etc.")
-            
-            # Campo numérico con inyección fuerte de CSS de texto negro
             mkt_precio = st.number_input("💵 Precio ($):", min_value=0.0, step=0.01, format="%.2f")
-            
             mkt_desc = st.text_area("📝 Descripción:", placeholder="Detalles de calidad, estado o uso recomendado...")
             mkt_foto = st.file_uploader("📸 Adjuntar Foto del Producto:", type=["png", "jpg", "jpeg"])
             
@@ -408,7 +404,7 @@ def render_dashboard():
             """, unsafe_allow_html=True)
             
             if item.get("imagen") is not None:
-                st.image(item["imagen"], use_container_width=True)
+                st.image(item["imagen"], width=350) # CORREGIDO: Ancho controlado para renderizar la subida correctamente
                 
             st.markdown("<div style='margin-bottom:15px;'></div>", unsafe_allow_html=True)
 
@@ -423,7 +419,6 @@ def render_dashboard():
                 st.image(chat["imagen"], caption="Material visual bajo evaluación", width=250)
         
         st.markdown("<hr style='border-top:1px dashed #ccc;'>", unsafe_allow_html=True)
-        
         st.markdown("##### Enviar consulta al Ingeniero Agrónomo Virtual")
         foto_cultivo = st.file_uploader("📸 Adjuntar registro fotográfico del cultivo (Opcional):", type=["png", "jpg", "jpeg"], key="uploader_ia")
         consulta_texto = st.text_input("✍️ Describa los síntomas observados o su consulta técnica:", placeholder="Ej: Tengo mucho monte en el cultivo o requiero plan de NPK...", key="input_texto_ia")
@@ -479,7 +474,6 @@ def render_dashboard():
                     Pico térmico elevado observado. Monitorear el estrés hídrico de las plantas. Apto principalmente para labores de control mecánico, preparación de abonos o mantenimiento estructural.
                 </div>
             """, unsafe_allow_html=True)
-            
         st.markdown("</div>", unsafe_allow_html=True)
 
     # --- PERFIL ---
