@@ -133,7 +133,7 @@ def responder_ia_agronomo(mensaje_usuario, tiene_archivo=False):
         return "🚜 *Dictamen Agronómico (Fertilidad):* Para optimizar el rendimiento por hectárea, suspenda aplicaciones genéricas. Aplique un plan balanceado basado en análisis de suelo previo. En fase vegetativa agresiva, se prescribe dosificación fraccionada de Nitrógeno (Urea al 46%) combinada con enmiendas de Fósforo ($P_2O_5$) de alta solubilidad si el pH está fuera del rango balanceado (6.0 - 6.5)."
     if "plaga" in msg or "insecto" in msg or "enfermedad" in msg or "hongo" in msg or "monte" in msg or "maleza" in msg:
         return "🛡️ *Estrategia Fitosanitaria (Manejo de Malezas y Suelo):* Ante la presencia de alta densidad de maleza ('mucho monte') previo a la siembra de pimentón, se sugiere realizar un desmalezado mecánico o rastreo para incorporar la materia orgánica, o evaluar una application localizada de herbicida si el umbral lo requiere. Esto evitará la competencia por nutrientes y luz con las plántulas."
-    return "📊 *Consulta Registrada por Ingeniería:* Para estructurar la prescripción técnica idónea, provea los datos del cultivo, etapa fenológica exacta, densidad de siembra y tipo de suelo predominante."
+    return "📊 *Consulta Registrada por Ingeniería:* Para estructurar la prescripción técnica idónea, provea los datos del cultivo, etapa fenológica exacta, densidad de siembra and tipo de suelo predominante."
 
 # ==========================================
 # 🚪 PANEL DE AUTENTICACIÓN
@@ -230,7 +230,6 @@ def render_dashboard():
         div[data-testid="stWidgetLabel"] p, label p { color: #1E3D14 !important; font-weight: bold !important; }
         h5 { color: #1E3D14 !important; font-weight: bold !important; margin-top: 10px; margin-bottom: 15px; }
         
-        /* CORRECCIÓN FINAL PARA EXPANDERS Y LETRAS EN ENTRADAS */
         details summary p, .stDetails summary p, [data-testid="stExpander"] summary p {
             color: #000000 !important;
             font-weight: bold !important;
@@ -404,7 +403,7 @@ def render_dashboard():
             """, unsafe_allow_html=True)
             
             if item.get("imagen") is not None:
-                st.image(item["imagen"], width=350) # CORREGIDO: Ancho controlado para renderizar la subida correctamente
+                st.image(item["imagen"], width=350)
                 
             st.markdown("<div style='margin-bottom:15px;'></div>", unsafe_allow_html=True)
 
@@ -446,9 +445,15 @@ def render_dashboard():
     elif st.session_state.pantalla_actual == "Clima":
         st.markdown("<h4 style='color:#1E3D14;'>🌤️ Estación Meteorológica</h4>", unsafe_allow_html=True)
         
+        # Selección del rubro agrícola a evaluar
+        cultivo_seleccionado = st.selectbox(
+            "Seleccione el cultivo para evaluar viabilidad:",
+            ["Maíz", "Pimentón", "Tomate", "Papa"]
+        )
+        
         random.seed(int(time.time()) // 60) 
-        temperatura_dinamica = round(random.uniform(26.0, 31.5), 1)
-        humedad_dinamica = random.randint(58, 72)
+        temperatura_dinamica = round(random.uniform(23.0, 33.5), 1)
+        humedad_dinamica = random.randint(50, 75)
         
         st.markdown(f"""
             <div class="weather-container">
@@ -456,24 +461,53 @@ def render_dashboard():
                 <div class="weather-temp">{temperatura_dinamica}°C</div>
                 <div class="weather-details">
                     💧 Humedad Relativa: <b>{humedad_dinamica}%</b><br>
+                    🌾 Cultivo bajo evaluación: <b>{cultivo_seleccionado}</b><br>
                     💨 Estado del Tiempo: <b>Condiciones cambiantes en tiempo real</b>
                 </div>
         """, unsafe_allow_html=True)
         
-        if temperatura_dinamica >= 24 and temperatura_dinamica <= 30:
-            st.markdown("""
-                <div class="weather-alert">
-                    📢 <b>RECOMENDACIÓN TÉCNICA:</b><br>
-                    El ambiente se encuentra <b>APTO PARA SEMBRAR Y REGAR</b>. Las condiciones de evapotranspiración son estables. Se aconseja realizar labores de campo antes del incremento térmico de la tarde.
+        # --- LÓGICA DE VIABILIDAD INTEGRADA ---
+        apto = False
+        detalles_cultivo = ""
+        
+        if cultivo_seleccionado == "Maíz":
+            if 24.0 <= temperatura_dinamica <= 30.0 and 60 <= humedad_dinamica <= 70:
+                apto = True
+            detalles_cultivo = "Rango ideal para Maíz: Temp. 24°C a 30°C y Humedad 60% a 70%."
+            
+        elif cultivo_seleccionado == "Pimentón":
+            if 20.0 <= temperatura_dinamica <= 28.0 and 50 <= humedad_dinamica <= 70:
+                apto = True
+            detalles_cultivo = "Rango ideal para Pimentón: Temp. 20°C a 28°C y Humedad 50% a 70%."
+            
+        elif cultivo_seleccionado == "Tomate":
+            if 18.0 <= temperatura_dinamica <= 27.0 and 60 <= humedad_dinamica <= 75:
+                apto = True
+            detalles_cultivo = "Rango ideal para Tomate: Temp. 18°C a 27°C y Humedad 60% a 75%."
+            
+        elif cultivo_seleccionado == "Papa":
+            if 15.0 <= temperatura_dinamica <= 22.0 and 60 <= humedad_dinamica <= 75:
+                apto = True
+            detalles_cultivo = "Rango ideal para Papa: Temp. 15°C a 22°C y Humedad 60% a 75%."
+
+        # Renderizado de Alerta según los requerimientos de Ingeniería Agronómica
+        if apto:
+            st.markdown(f"""
+                <div class="weather-alert" style="background-color: #e8f5e9; border-left: 5px solid #2e7d32; color: #1b5e20 !important;">
+                    📢 <b>DICTAMEN: APTO PARA SEMBRAR Y REGAR</b><br>
+                    Las condiciones actuales de temperatura y humedad se alinean perfectamente con las demandas fisiológicas de la plántula de <b>{cultivo_seleccionado}</b>. Las pérdidas por evapotranspiración crítica son mínimas.
+                    <br><small style="color: #43a047;"><i>{detalles_cultivo}</i></small>
                 </div>
             """, unsafe_allow_html=True)
         else:
-            st.markdown("""
-                <div class="weather-alert">
-                    📢 <b>RECOMENDACIÓN TÉCNICA:</b><br>
-                    Pico térmico elevado observado. Monitorear el estrés hídrico de las plantas. Apto principalmente para labores de control mecánico, preparación de abonos o mantenimiento estructural.
+            st.markdown(f"""
+                <div class="weather-alert" style="background-color: #ffebee; border-left: 5px solid #c62828; color: #b71c1c !important;">
+                    📢 <b>DICTAMEN: NO APTO PARA SEMBRAR / ALERTA DE ESTRÉS</b><br>
+                    Las variables meteorológicas actuales imponen limitaciones de estrés térmico o hídrico adverso para el desarrollo del <b>{cultivo_seleccionado}</b>. Se recomienda suspender trasplantes o siembras directas para prevenir pérdidas de germinación.
+                    <br><small style="color: #e53935;"><i>{detalles_cultivo}</i></small>
                 </div>
             """, unsafe_allow_html=True)
+            
         st.markdown("</div>", unsafe_allow_html=True)
 
     # --- PERFIL ---
